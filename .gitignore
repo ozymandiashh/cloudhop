@@ -1,0 +1,4 @@
+cloudmirror_*.log
+cloudmirror_*_state.json
+__pycache__/
+.DS_Store
