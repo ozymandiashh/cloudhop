@@ -1,4 +1,4 @@
-"""CloudMirror CLI entry point."""
+"""CloudHop CLI entry point."""
 import sys
 import signal
 import platform
@@ -7,7 +7,7 @@ import threading
 import http.server
 from typing import Any, List
 
-from .server import CloudMirrorHandler, CSRF_TOKEN
+from .server import CloudHopHandler
 from .transfer import TransferManager, ensure_rclone
 from .utils import PORT
 
@@ -16,7 +16,7 @@ def main() -> None:
     """Main entry point -- wizard mode (no args) or CLI mode (source dest [flags])."""
     args = sys.argv[1:]
     manager = TransferManager()
-    CloudMirrorHandler.manager = manager
+    CloudHopHandler.manager = manager
 
     signal.signal(signal.SIGTERM, lambda signum, frame: _signal_handler(manager))
 
@@ -24,7 +24,7 @@ def main() -> None:
         # Web wizard mode
         print()
         print("  +==================================================+")
-        print("  |              Welcome to CloudMirror               |")
+        print("  |               Welcome to CloudHop                |")
         print("  |                                                   |")
         print("  |   Starting web setup wizard...                    |")
         print("  +==================================================+")
@@ -40,11 +40,11 @@ def main() -> None:
         print()
         if manager.rclone_pid and not manager.rclone_cmd:
             # Attach mode - monitoring existing process
-            print(f"  CloudMirror - Monitoring PID {manager.rclone_pid}")
+            print(f"  CloudHop - Monitoring PID {manager.rclone_pid}")
             print(f"  Log: {manager.log_file}")
             start_dashboard(manager, start_rclone=False)
         else:
-            print("  CloudMirror - Advanced Mode")
+            print("  CloudHop - Advanced Mode")
             print(f"  Command: {' '.join(manager.rclone_cmd)}")
             start_dashboard(manager, start_rclone=True)
 
@@ -90,7 +90,7 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
     port = PORT
 
     print()
-    print(f"  CloudMirror: http://localhost:{port}")
+    print(f"  CloudHop: http://localhost:{port}")
     print()
     if manager.transfer_active:
         print("  Open the link above in your browser to monitor progress.")
@@ -102,11 +102,11 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
     server = None
     for try_port in range(port, port + 5):
         try:
-            server = http.server.ThreadingHTTPServer(("127.0.0.1", try_port), CloudMirrorHandler)
+            server = http.server.ThreadingHTTPServer(("127.0.0.1", try_port), CloudHopHandler)
             if try_port != port:
                 print(f"  Port {port} was busy, using port {try_port} instead.")
                 port = try_port
-            CloudMirrorHandler.actual_port = port
+            CloudHopHandler.actual_port = port
             break
         except OSError as e:
             if ("Address already in use" in str(e) or e.errno == 48) and try_port < port + 4:
@@ -134,7 +134,7 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
 
 
 def parse_cli_args(manager: TransferManager, args: List[str]) -> None:
-    """Parse CLI arguments for advanced usage: cloudmirror source: dest: [flags]"""
+    """Parse CLI arguments for advanced usage: cloudhop source: dest: [flags]"""
     source = None
     dest = None
     extra_flags = []
@@ -160,11 +160,11 @@ def parse_cli_args(manager: TransferManager, args: List[str]) -> None:
             extra_flags.append(arg)
 
     if not source or not dest:
-        print("Usage: cloudmirror <source> <destination> [--flags]")
-        print("Example: cloudmirror onedrive: gdrive:backup --transfers=8")
+        print("Usage: cloudhop <source> <destination> [--flags]")
+        print("Example: cloudhop onedrive: gdrive:backup --transfers=8")
         print()
         print("Or just run without arguments for the interactive wizard:")
-        print("  cloudmirror")
+        print("  cloudhop")
         sys.exit(1)
 
     manager.set_transfer_paths(source, dest)
@@ -193,7 +193,7 @@ def parse_cli_args(manager: TransferManager, args: List[str]) -> None:
 
 
 def _signal_handler(manager: TransferManager) -> None:
-    print("\n  CloudMirror stopped.")
+    print("\n  CloudHop stopped.")
     if manager.transfer_active:
         print("  (The file transfer continues in the background)")
     print()

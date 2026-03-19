@@ -1,4 +1,4 @@
-"""CloudMirror utilities - pure functions and constants."""
+"""CloudHop utilities - pure functions and constants."""
 
 import os
 import re
@@ -9,7 +9,7 @@ from typing import List, Optional
 PORT: int = 8787
 TRANSFER_LABEL: str = "Source -> Destination"
 
-_CM_DIR: str = os.path.join(os.path.expanduser("~"), ".cloudmirror")
+_CM_DIR: str = os.path.join(os.path.expanduser("~"), ".cloudhop")
 os.makedirs(_CM_DIR, mode=0o700, exist_ok=True)
 LOG_TAIL_BYTES: int = 16000
 RECENT_FILES_INITIAL_CHUNK: int = 100000

@@ -1,4 +1,4 @@
-"""CloudMirror transfer management."""
+"""CloudHop transfer management."""
 
 import os
 import json
@@ -83,7 +83,7 @@ def install_rclone() -> str:
         print("    1. Go to https://rclone.org/downloads/")
         print("    2. Download the Windows installer")
         print("    3. Run the installer")
-        print("    4. Then run CloudMirror again")
+        print("    4. Then run CloudHop again")
         print()
         sys.exit(1)
 
@@ -106,28 +106,6 @@ def install_rclone() -> str:
                 print()
                 print("  rclone installed successfully!")
                 return find_rclone()  # type: ignore[return-value]
-
-        # Fallback to curl installer
-        print("  Downloading from rclone.org...")
-        result = subprocess.run(
-            ["bash", "-c", "curl -s https://rclone.org/install.sh | sudo bash"],
-            capture_output=False,
-        )
-        if result.returncode == 0 and find_rclone():
-            print()
-            print("  rclone installed successfully!")
-            return find_rclone()  # type: ignore[return-value]
-
-    elif system == "linux":
-        print("  Downloading from rclone.org...")
-        result = subprocess.run(
-            ["bash", "-c", "curl -s https://rclone.org/install.sh | sudo bash"],
-            capture_output=False,
-        )
-        if result.returncode == 0 and find_rclone():
-            print()
-            print("  rclone installed successfully!")
-            return find_rclone()  # type: ignore[return-value]
 
     print()
     print("  Installation failed. Please install rclone manually:")
@@ -182,7 +160,7 @@ class TransferManager:
 
     def __init__(self, cm_dir: Optional[str] = None) -> None:
         self.cm_dir: str = cm_dir or os.path.join(
-            os.path.expanduser("~"), ".cloudmirror"
+            os.path.expanduser("~"), ".cloudhop"
         )
         os.makedirs(self.cm_dir, mode=0o700, exist_ok=True)
 
@@ -190,12 +168,12 @@ class TransferManager:
         self.rclone_cmd: List[str] = []
         self.transfer_active: bool = False
         self.rclone_pid: Optional[int] = None
-        self.log_file: str = os.path.join(self.cm_dir, "cloudmirror.log")
-        self.state_file: str = os.path.join(self.cm_dir, "cloudmirror_state.json")
+        self.log_file: str = os.path.join(self.cm_dir, "cloudhop.log")
+        self.state_file: str = os.path.join(self.cm_dir, "cloudhop_state.json")
         self.transfer_label: str = "Source -> Destination"
 
         # Locks
-        self.state_lock: threading.Lock = threading.Lock()
+        self.state_lock: threading.RLock = threading.RLock()
         self.transfer_lock: threading.Lock = threading.Lock()
 
         # Persistent state
@@ -209,9 +187,9 @@ class TransferManager:
     def set_transfer_paths(self, source: str, dest: str) -> None:
         """Set unique log/state file paths and transfer label."""
         transfer_id = hashlib.md5(f"{source}:{dest}".encode()).hexdigest()[:8]
-        self.log_file = os.path.join(self.cm_dir, f"cloudmirror_{transfer_id}.log")
+        self.log_file = os.path.join(self.cm_dir, f"cloudhop_{transfer_id}.log")
         self.state_file = os.path.join(
-            self.cm_dir, f"cloudmirror_{transfer_id}_state.json"
+            self.cm_dir, f"cloudhop_{transfer_id}_state.json"
         )
         src_label = get_remote_label(source)
         dst_label = get_remote_label(dest)
@@ -268,22 +246,27 @@ class TransferManager:
 
     def is_rclone_running(self) -> bool:
         """Return True if the tracked rclone process is still alive."""
-        if self.rclone_pid:
+        pid = self.rclone_pid  # snapshot to avoid race
+        if not pid:
+            return False
+        try:
+            waited_pid, status = os.waitpid(pid, os.WNOHANG)
+            if waited_pid == 0:
+                return True  # still running
+            self.rclone_pid = None  # reaped zombie
+            self.transfer_active = False
+            return False
+        except ChildProcessError:
+            # Not our child - fall back to kill check
             try:
-                pid, status = os.waitpid(self.rclone_pid, os.WNOHANG)
-                if pid == 0:
-                    return True  # still running
-                self.rclone_pid = None  # reaped zombie
-                return False
-            except ChildProcessError:
-                # Not our child - fall back to kill check
-                try:
-                    os.kill(self.rclone_pid, 0)
-                    return True
-                except (ProcessLookupError, OSError):
-                    self.rclone_pid = None
+                os.kill(pid, 0)
+                return True
             except (ProcessLookupError, OSError):
                 self.rclone_pid = None
+                self.transfer_active = False
+        except (ProcessLookupError, OSError):
+            self.rclone_pid = None
+            self.transfer_active = False
         return False
 
     # ---- full log scanner (session detection + chart history) ----------------
@@ -511,6 +494,7 @@ class TransferManager:
                     not first_elapsed_in_chunk
                     and prev_elapsed > MIN_SESSION_ELAPSED_SEC
                     and elapsed_sec < prev_elapsed * 0.5
+                    and elapsed_sec < 60
                     and session_bytes_changed
                 ):
                     if current_session:
@@ -1196,14 +1180,22 @@ class TransferManager:
         if not self.rclone_pid:
             return {"ok": False, "msg": "No tracked rclone process"}
         try:
-            os.kill(self.rclone_pid, signal.SIGTERM)
+            if platform.system().lower() == "windows":
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(self.rclone_pid)],
+                    capture_output=True,
+                )
+            else:
+                os.kill(self.rclone_pid, signal.SIGTERM)
             old_pid = self.rclone_pid
             self.rclone_pid = None
+            self.transfer_active = False
             time.sleep(1)
             self.scan_full_log()
             return {"ok": True, "msg": f"Stopped rclone (PID {old_pid})"}
         except (ProcessLookupError, OSError):
             self.rclone_pid = None
+            self.transfer_active = False
             return {"ok": False, "msg": "rclone process not found"}
 
     def resume(self) -> Dict[str, Any]:

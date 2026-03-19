@@ -1,4 +1,4 @@
-"""CloudMirror HTTP server."""
+"""CloudHop HTTP server."""
 import http.server
 import json
 import hmac
@@ -29,8 +29,8 @@ from .utils import (
 CSRF_TOKEN = secrets.token_hex(32)
 
 
-class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
-    """HTTP request handler for CloudMirror."""
+class CloudHopHandler(http.server.BaseHTTPRequestHandler):
+    """HTTP request handler for CloudHop."""
 
     # Class-level reference to the TransferManager instance.
     # Must be set before starting the server.
@@ -116,7 +116,10 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
             return None
         if length > 0:
             try:
-                return json.loads(self.rfile.read(length))
+                parsed = json.loads(self.rfile.read(length))
+                if not isinstance(parsed, dict):
+                    return None
+                return parsed
             except (json.JSONDecodeError, ValueError):
                 return None
         return {}
@@ -126,8 +129,11 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if not self._check_host():
             return
+        if self.manager is None:
+            self._send_json({"ok": False, "msg": "Server not ready"}, 503)
+            return
 
-        port = PORT
+        port = self.actual_port
 
         if self.path == "/api/status":
             self._send_json(self.manager.parse_current())
@@ -145,7 +151,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
                         with open(os.path.join(_CM_DIR, f)) as sf:
                             s = json.load(sf)
                             history.append({
-                                "id": f.replace("cloudmirror_", "").replace("_state.json", ""),
+                                "id": f.replace("cloudhop_", "").replace("_state.json", ""),
                                 "label": s.get("transfer_label", TRANSFER_LABEL),
                                 "sessions": len(s.get("sessions", [])),
                                 "cmd": s.get("rclone_cmd", []),
@@ -177,6 +183,9 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self._check_host():
             return
+        if self.manager is None:
+            self._send_json({"ok": False, "msg": "Server not ready"}, 503)
+            return
         if not self._check_csrf():
             return
 
@@ -189,25 +198,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
             if path:
                 self._send_json({"ok": True, "path": path})
             else:
-                # Try to install
-                try:
-                    system = platform.system().lower()
-                    if system == "darwin" and shutil.which("brew"):
-                        subprocess.run(
-                            ["brew", "install", "rclone"],
-                            capture_output=True,
-                            timeout=RCLONE_INSTALL_TIMEOUT_SEC,
-                        )
-                    elif system in ("darwin", "linux"):
-                        subprocess.run(
-                            ["bash", "-c", "curl -s https://rclone.org/install.sh | sudo bash"],
-                            capture_output=True,
-                            timeout=RCLONE_INSTALL_TIMEOUT_SEC,
-                        )
-                    path = find_rclone()
-                    self._send_json({"ok": path is not None, "path": path or ""})
-                except Exception as e:
-                    self._send_json({"ok": False, "msg": str(e)})
+                self._send_json({"ok": False, "msg": "rclone not found. Please install from https://rclone.org/install/"})
         elif self.path == "/api/wizard/configure-remote":
             body = self._read_body()
             if body is None:

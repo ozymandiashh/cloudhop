@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CloudMirror Dashboard</title>
-<script>(function(){var t=localStorage.getItem('cloudmirror-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<title>CloudHop Dashboard</title>
+<script>(function(){var t=localStorage.getItem('cloudhop-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
     <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
       </div>
-      <span class="logo-text" id="transferTitle">CloudMirror</span>
+      <span class="logo-text" id="transferTitle">CloudHop</span>
     </div>
     <div class="header-center">
       <div class="status-dot" id="statusDot"></div>
@@ -80,7 +80,7 @@
     </div>
     <div class="sub-bar-wrap">
       <div class="sub-bar-label">
-        <span>Checks</span>
+        <span>Verified</span>
         <span><span id="checksDone">0</span> / <span id="checksTotal">0</span></span>
       </div>
       <div class="sub-track"><div class="sub-fill checks" id="checksBar" style="width:0%"></div></div>
@@ -255,13 +255,13 @@
 
 <!-- ========== FOOTER ========== -->
 <footer class="footer" id="footer">
-  CloudMirror Dashboard &middot; Auto-refresh 5s &middot; <span id="footerInfo">--</span> &middot; Uptime: <span id="uptimePct">--</span> &middot; Updated: <span id="lastUpdate">--</span> &middot; <a href="#" onclick="showHistory();return false;">Transfer History</a>
+  CloudHop Dashboard &middot; Auto-refresh 5s &middot; <span id="footerInfo">--</span> &middot; Uptime: <span id="uptimePct">--</span> &middot; Updated: <span id="lastUpdate">--</span> &middot; <a href="#" onclick="showHistory();return false;">Transfer History</a>
 </footer>
 
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div id="connLost" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--red);color:#fff;text-align:center;padding:10px 16px;font-size:0.85rem;font-weight:600;z-index:300;">Connection lost. Dashboard cannot reach the server.</div>
+<div id="connLost" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--red);color:#fff;text-align:center;padding:10px 16px;font-size:0.85rem;font-weight:600;z-index:300;">Connection lost. Please check that CloudHop is running.</div>
 
 <script src="/static/dashboard.js"></script>
 </body>

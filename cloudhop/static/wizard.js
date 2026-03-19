@@ -16,7 +16,7 @@ let selectedSpeed = '8';
 let existingRemotes = [];
 
 const providerKeys = {
-  drive: 'gdrive', onedrive: 'onedrive', dropbox: 'dropbox', mega: 'mega', s3: 's3', protondrive: 'protondrive', local: 'local', other: null
+  drive: 'gdrive', onedrive: 'onedrive', dropbox: 'dropbox', mega: 'mega', s3: 's3', protondrive: 'protondrive', local: 'local', icloud: 'iclouddrive', other: null
 };
 const providerIcons = {
   drive: '<div style="font-size:1.5rem;font-weight:800;line-height:1;"><span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span></div>',
@@ -26,6 +26,7 @@ const providerIcons = {
   s3: '<svg width="28" height="28" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="800" fill="#ff9900">S3</text></svg>',
   protondrive: '<svg width="28" height="28" viewBox="0 0 40 40"><path d="M20 3L6 10v10c0 9.5 5.9 18.4 14 20 8.1-1.6 14-10.5 14-20V10L20 3z" fill="#6d4aff"/></svg>',
   local: '<svg width="28" height="28" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" fill="var(--text-dim)"/></svg>',
+  icloud: '<svg width="28" height="28" viewBox="0 0 40 40"><path d="M30 17.5C30 12.3 25.7 8 20.5 8c-3.8 0-7.1 2.2-8.7 5.4C10.9 13.2 10 13 9 13c-2.8 0-5 2.2-5 5 0 .2 0 .4.1.7C2 19.8 0 22.4 0 25.5 0 29.1 2.9 32 6.5 32h25c3.6 0 6.5-2.9 6.5-6.5 0-3.3-2.4-6-5.5-6.4.3-.5.5-1 .5-1.6z" fill="#3b82f6"/></svg>',
   other: '<svg width="28" height="28" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z" fill="var(--text-dim)"/></svg>'
 };
 
@@ -34,12 +35,14 @@ function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute('data-theme');
   const next = current === 'light' ? 'dark' : 'light';
+  document.body.style.transition = 'none';
   html.setAttribute('data-theme', next);
   document.querySelector('.theme-toggle').textContent = next === 'light' ? '\u2600' : '\u263E';
-  localStorage.setItem('cloudmirror-theme', next);
+  localStorage.setItem('cloudhop-theme', next);
+  requestAnimationFrame(() => { requestAnimationFrame(() => { document.body.style.transition = ''; }); });
 }
 (function() {
-  const saved = localStorage.getItem('cloudmirror-theme');
+  const saved = localStorage.getItem('cloudhop-theme');
   if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
     document.documentElement.setAttribute('data-theme', 'light');
     document.querySelector('.theme-toggle').textContent = '\u2600';
@@ -49,7 +52,7 @@ function toggleTheme() {
     document.querySelector('.theme-toggle').textContent = '\u2600';
   }
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('cloudmirror-theme')) {
+    if (!localStorage.getItem('cloudhop-theme')) {
       document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
       document.querySelector('.theme-toggle').textContent = e.matches ? '\u2600' : '\u263E';
     }
@@ -62,7 +65,7 @@ function toggleTheme() {
     if (d.home_dir) window._homeDir = d.home_dir;
     const el = document.getElementById('welcomeRcloneCheck');
     if (!d.rclone_installed) {
-      el.innerHTML = '<span style="color:var(--orange)">rclone is not installed. It will be installed automatically when you proceed.</span>';
+      el.innerHTML = '<span style="color:var(--orange)">Required components will be installed automatically when you proceed.</span>';
     }
   }).catch(() => {});
 })();
@@ -121,7 +124,7 @@ async function goTo(step) {
   currentStep = step;
   // Save wizard state to survive page refresh
   try {
-    sessionStorage.setItem('cm_wizard', JSON.stringify({
+    sessionStorage.setItem('cloudhop_wizard', JSON.stringify({
       step: currentStep, sourceProvider, sourceName, sourceDisplayName,
       destProvider, destName, destDisplayName, selectedSpeed
     }));
@@ -138,7 +141,7 @@ function toggleAdvanced() {
 // Restore wizard state after refresh
 (function() {
   try {
-    const saved = sessionStorage.getItem('cm_wizard');
+    const saved = sessionStorage.getItem('cloudhop_wizard');
     if (!saved) return;
     const s = JSON.parse(saved);
     if (!s.sourceProvider) return;
@@ -272,7 +275,7 @@ async function buildConnectStep() {
   if (hasOAuth && hasCred) {
     hint.innerHTML = 'Some services will open a browser for sign-in. Others will ask for credentials below.';
   } else if (hasOAuth) {
-    hint.innerHTML = 'A browser tab will open for authentication. Sign in to authorize CloudMirror, then return here.';
+    hint.innerHTML = 'A browser tab will open for authentication. Sign in to authorize CloudHop, then return here.';
   } else if (hasCred) {
     hint.innerHTML = 'Enter your credentials below to connect your accounts.';
   } else {
@@ -281,21 +284,21 @@ async function buildConnectStep() {
 
   // Check rclone first
   const statusEl = document.getElementById('rcloneStatus');
-  statusEl.innerHTML = '<div class="spinner"></div> Checking rclone...';
+  statusEl.innerHTML = '<div class="spinner"></div> Setting up...';
   try {
     const resp = await fetch('/api/wizard/status');
     const data = await resp.json();
     existingRemotes = data.remotes || [];
     if (data.home_dir) window._homeDir = data.home_dir;
     if (!data.rclone_installed) {
-      statusEl.innerHTML = '<span style="color:var(--orange)">rclone not found. Installing...</span>';
+      statusEl.innerHTML = '<span style="color:var(--orange)">Installing required components...</span>';
       const installResp = await fetch('/api/wizard/check-rclone', {method:'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()}});
       const installData = await installResp.json();
       if (!installData.ok) {
-        statusEl.innerHTML = '<span style="color:var(--red)">Could not install rclone. Please install manually from rclone.org</span>';
+        statusEl.innerHTML = '<span style="color:var(--red)">Setup failed. Please visit rclone.org/install for manual setup.</span>';
         return;
       }
-      statusEl.innerHTML = '<span style="color:var(--green)">rclone installed!</span>';
+      statusEl.innerHTML = '<span style="color:var(--green)">Setup complete!</span>';
     } else {
       statusEl.innerHTML = '';
     }

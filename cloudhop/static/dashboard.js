@@ -220,7 +220,7 @@ function friendlyError(msg) {
     for (const [pattern, friendly] of map) {
         if (pattern.test(msg)) return friendly;
     }
-    return msg;
+    return 'An unexpected error occurred. The transfer will retry automatically.';
 }
 
 // Update header status dot appearance
@@ -253,8 +253,10 @@ async function refresh() {
     if (!res.ok) return;
     const d = await res.json();
     failCount = 0;
-    document.getElementById('connLost').style.display = 'none';
-    document.querySelector('.header').style.top = '0';
+    const connLost = document.getElementById('connLost');
+    if (connLost) connLost.style.display = 'none';
+    const header = document.querySelector('.header');
+    if (header) header.style.top = '0';
     document.body.style.paddingTop = '';
 
     // Show empty state if API returns error (no log file) AND rclone is NOT running
@@ -295,7 +297,8 @@ async function refresh() {
       updateStatusDot('complete');
       document.getElementById('statusText').textContent = 'Complete';
       updateButtons(false);
-      if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = setInterval(refresh, 30000); }
+      if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
+      refreshInterval = setInterval(refresh, 30000);
     } else if (d.rclone_running && !d.speed && !d.session_num) {
       updateStatusDot('active');
       document.getElementById('statusText').textContent = 'Starting...';
@@ -411,7 +414,7 @@ async function refresh() {
     } else if (d.finished) {
       document.getElementById('speed').textContent = 'paused';
       document.getElementById('speed').style.fontSize = '1rem';
-      document.getElementById('speedSub').textContent = 'rclone not running';
+      document.getElementById('speedSub').textContent = 'transfer paused';
     }
 
     // Avg speed
@@ -567,7 +570,7 @@ async function refresh() {
         return `<div class="recent-file">
           <div class="rf-name" title="${esc(f.name)}">${esc(f.name)}</div>
           <span class="rf-ext" style="background:${getTypeColor(ext)}22;color:${getTypeColor(ext)}">${esc(ext)}</span>
-          <div class="rf-time">${f.time}</div>
+          <div class="rf-time">${esc(f.time)}</div>
         </div>`;
       }).join('');
     } else {
@@ -602,7 +605,7 @@ async function refresh() {
 
     updateFavicon(pct);
 
-    document.title = (pct > 0 && pct < 100) ? '[' + Math.round(pct) + '%] CloudMirror' : 'CloudMirror';
+    document.title = (pct > 0 && pct < 100) ? '[' + Math.round(pct) + '%] CloudHop' : 'CloudHop';
 
     // Smoothed ETA based on average speed
     if (pct >= 100) {
@@ -720,7 +723,7 @@ function toggleTheme() {
   document.body.style.transition = 'none';
   document.querySelectorAll('.card, .header').forEach(el => el.style.transition = 'none');
   html.setAttribute('data-theme', next);
-  localStorage.setItem('cloudmirror-theme', next);
+  localStorage.setItem('cloudhop-theme', next);
   // Re-enable transitions after paint
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -739,7 +742,7 @@ function toggleTheme() {
 }
 // Load saved theme
 (function() {
-  const saved = localStorage.getItem('cloudmirror-theme');
+  const saved = localStorage.getItem('cloudhop-theme');
   if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
     document.documentElement.setAttribute('data-theme', 'light');
     document.getElementById('theme-icon-dark').style.display = 'none';
@@ -751,7 +754,7 @@ function toggleTheme() {
     document.getElementById('theme-icon-light').style.display = 'block';
   }
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('cloudmirror-theme')) {
+    if (!localStorage.getItem('cloudhop-theme')) {
       document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
       document.getElementById('theme-icon-dark').style.display = e.matches ? 'none' : 'block';
       document.getElementById('theme-icon-light').style.display = e.matches ? 'block' : 'none';
@@ -804,7 +807,7 @@ function checkNotifications(d) {
     setTimeout(() => playNotifSound(1000, 0.3), 200);
     setTimeout(() => playNotifSound(1200, 0.3), 400);
     if (Notification.permission === 'granted') {
-      new Notification('CloudMirror - Transfer Complete!', { body: 'All files have been transferred.' });
+      new Notification('CloudHop - Transfer Complete!', { body: 'All files have been transferred.' });
     }
   }
   const errs = d.errors || 0;

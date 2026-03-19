@@ -1,10 +1,10 @@
-"""Tests for cloudmirror.server module."""
+"""Tests for cloudhop.server module."""
 import io
 import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from cloudmirror.server import CloudMirrorHandler, CSRF_TOKEN
+from cloudhop.server import CloudHopHandler, CSRF_TOKEN
 
 
 class FakeSocket:
@@ -20,8 +20,8 @@ class FakeSocket:
 
 
 def _make_handler(host="localhost:8787", method="GET", path="/"):
-    """Create a CloudMirrorHandler with mocked internals."""
-    handler = CloudMirrorHandler.__new__(CloudMirrorHandler)
+    """Create a CloudHopHandler with mocked internals."""
+    handler = CloudHopHandler.__new__(CloudHopHandler)
     handler.headers = {"Host": host, "Origin": "", "Content-Length": "0"}
     handler.path = path
     handler.command = method

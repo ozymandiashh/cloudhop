@@ -1,4 +1,4 @@
-"""Comprehensive tests for cloudmirror.transfer.TransferManager."""
+"""Comprehensive tests for cloudhop.transfer.TransferManager."""
 
 import json
 import os
@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from cloudmirror.transfer import TransferManager, remote_exists, get_existing_remotes
+from cloudhop.transfer import TransferManager, remote_exists, get_existing_remotes
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ FAKE_LOG_TWO_SESSIONS = textwrap.dedent("""\
     Transferred:            2 / 100, 2%
     Errors:                 0
     Checks:         0 / 0, -  Listed 100
-    Elapsed time:      2m0.0s
+    Elapsed time:      30s
 
     2025/06/10 10:32:00 INFO  :
     Transferred:   	  800 MiB / 2.000 GiB, 39%, 60.000 MiB/s, ETA 20s
@@ -190,9 +190,9 @@ class TestStateManagement:
         """set_transfer_paths sets log_file, state_file, and transfer_label."""
         manager.set_transfer_paths("gdrive:photos", "onedrive:backup")
 
-        assert "cloudmirror_" in manager.log_file
+        assert "cloudhop_" in manager.log_file
         assert manager.log_file.endswith(".log")
-        assert "cloudmirror_" in manager.state_file
+        assert "cloudhop_" in manager.state_file
         assert manager.state_file.endswith("_state.json")
         assert "Google Drive" in manager.transfer_label
         assert "OneDrive" in manager.transfer_label
@@ -665,14 +665,14 @@ class TestConfigureRemote:
         result = manager.configure_remote("mylocal", "local")
         assert result["ok"] is True
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=True)
+    @patch("cloudhop.transfer.remote_exists", return_value=True)
     def test_configure_remote_already_exists(self, mock_exists, manager):
         """Already-configured remote returns ok with message."""
         result = manager.configure_remote("gdrive", "drive")
         assert result["ok"] is True
         assert "Already configured" in result["msg"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     @patch("subprocess.run")
     def test_configure_remote_oauth(self, mock_run, mock_exists, manager):
         """OAuth provider (drive) calls rclone config create."""
@@ -684,7 +684,7 @@ class TestConfigureRemote:
         cmd = mock_run.call_args_list[0][0][0]
         assert cmd == ["rclone", "config", "create", "gdrive", "drive"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     def test_configure_remote_mega_needs_credentials(self, mock_exists, manager):
         """MEGA without credentials returns needs_credentials."""
         result = manager.configure_remote("mymega", "mega")
@@ -692,7 +692,7 @@ class TestConfigureRemote:
         assert result["needs_credentials"] is True
         assert "Email" in result["user_label"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     @patch("subprocess.run")
     def test_configure_remote_mega_with_credentials(self, mock_run, mock_exists, manager):
         """MEGA with credentials calls obscure then config create then lsd."""
@@ -720,7 +720,7 @@ class TestConfigureRemote:
         assert env["RCLONE_CONFIG_MYMEGA_USER"] == "user@example.com"
         assert env["RCLONE_CONFIG_MYMEGA_PASS"] == "obscured_pass"
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     def test_configure_remote_s3_needs_credentials(self, mock_exists, manager):
         """S3 without credentials returns needs_credentials."""
         result = manager.configure_remote("mys3", "s3")
@@ -728,7 +728,7 @@ class TestConfigureRemote:
         assert result["needs_credentials"] is True
         assert "Access Key" in result["user_label"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     @patch("subprocess.run")
     def test_configure_remote_s3_env_vars(self, mock_run, mock_exists, manager):
         """S3 configuration sets ACCESS_KEY_ID and SECRET_ACCESS_KEY env vars."""
@@ -751,7 +751,7 @@ class TestConfigureRemote:
         cmd = config_call[0][0]
         assert "provider=AWS" in cmd
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     def test_configure_remote_protondrive_needs_credentials(self, mock_exists, manager):
         """Proton Drive without credentials returns needs_credentials."""
         result = manager.configure_remote("myproton", "protondrive")
@@ -759,7 +759,7 @@ class TestConfigureRemote:
         assert result["needs_credentials"] is True
         assert "Username" in result["user_label"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     @patch("subprocess.run")
     def test_configure_remote_timeout(self, mock_run, mock_exists, manager):
         """Configuration timeout is handled gracefully."""
@@ -770,7 +770,7 @@ class TestConfigureRemote:
         assert result["ok"] is False
         assert "timed out" in result["msg"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     @patch("subprocess.run")
     def test_configure_remote_failure(self, mock_run, mock_exists, manager):
         """rclone config create failure returns sanitized error."""
@@ -780,7 +780,7 @@ class TestConfigureRemote:
         result = manager.configure_remote("gdrive", "drive")
         assert result["ok"] is False
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     def test_configure_remote_rejects_flag_injection_username(self, mock_exists, manager):
         """configure_remote rejects usernames starting with --."""
         result = manager.configure_remote(
@@ -789,7 +789,7 @@ class TestConfigureRemote:
         assert result["ok"] is False
         assert "Invalid" in result["msg"]
 
-    @patch("cloudmirror.transfer.remote_exists", return_value=False)
+    @patch("cloudhop.transfer.remote_exists", return_value=False)
     @patch("subprocess.run")
     def test_configure_remote_mega_validation_fails(self, mock_run, mock_exists, manager):
         """When MEGA lsd validation fails, remote is deleted and error returned."""
@@ -830,11 +830,11 @@ class TestStandaloneHelpers:
         remotes = get_existing_remotes()
         assert remotes == []
 
-    @patch("cloudmirror.transfer.get_existing_remotes", return_value=["gdrive", "mega"])
+    @patch("cloudhop.transfer.get_existing_remotes", return_value=["gdrive", "mega"])
     def test_remote_exists_true(self, mock_remotes):
         assert remote_exists("gdrive") is True
 
-    @patch("cloudmirror.transfer.get_existing_remotes", return_value=["gdrive", "mega"])
+    @patch("cloudhop.transfer.get_existing_remotes", return_value=["gdrive", "mega"])
     def test_remote_exists_false(self, mock_remotes):
         assert remote_exists("dropbox") is False
 
@@ -866,8 +866,8 @@ class TestEdgeCases:
         assert os.path.isdir(new_dir)
 
     def test_thread_safety_state_lock(self, manager):
-        """state_lock and transfer_lock are proper Lock objects."""
-        assert isinstance(manager.state_lock, type(threading.Lock()))
+        """state_lock is an RLock and transfer_lock is a Lock."""
+        assert isinstance(manager.state_lock, type(threading.RLock()))
         assert isinstance(manager.transfer_lock, type(threading.Lock()))
 
     def test_parse_current_empty_log(self, tmp_path):

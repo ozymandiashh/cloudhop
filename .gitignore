@@ -1,4 +1,10 @@
-cloudmirror_*.log
-cloudmirror_*_state.json
+cloudhop_*.log
+cloudhop_*_state.json
 __pycache__/
+*.pyc
 .DS_Store
+*.egg-info/
+dist/
+build/
+.venv/
+.env

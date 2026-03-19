@@ -1,7 +1,7 @@
-"""Tests for cloudmirror.utils - 100% branch coverage target."""
+"""Tests for cloudhop.utils - 100% branch coverage target."""
 
 import pytest
-from cloudmirror.utils import (
+from cloudhop.utils import (
     validate_rclone_input,
     validate_exclude_pattern,
     _sanitize_rclone_error,
