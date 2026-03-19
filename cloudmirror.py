@@ -1193,6 +1193,10 @@ HTML = r"""<!DOCTYPE html>
     0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
     50% { opacity: 0.6; box-shadow: 0 0 0 5px rgba(34,197,94,0); }
   }
+  @keyframes ctaGlow {
+    0%, 100% { box-shadow: 0 4px 14px rgba(59,130,246,0.3); }
+    50% { box-shadow: 0 4px 24px rgba(59,130,246,0.6), 0 0 40px rgba(59,130,246,0.15); }
+  }
 
   .session-badge {
     font-size: 0.65rem; color: var(--purple); background: rgba(167,139,250,0.1);
@@ -1257,9 +1261,9 @@ HTML = r"""<!DOCTYPE html>
 
   .stat-card {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
-    padding: 16px; text-align: center; transition: border-color 0.2s;
+    padding: 16px; text-align: center; transition: all 0.2s ease;
   }
-  .stat-card:hover { border-color: var(--blue); }
+  .stat-card:hover { border-color: var(--blue); box-shadow: 0 2px 12px rgba(59,130,246,0.1); transform: translateY(-1px); }
   .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 6px; }
   .stat-value { font-size: 1.4rem; font-weight: 700; color: #fff; line-height: 1.2; }
   .stat-sub { font-size: 0.65rem; color: var(--text-dim); margin-top: 3px; }
@@ -1421,7 +1425,14 @@ HTML = r"""<!DOCTYPE html>
 
 <div class="header">
   <div class="header-left">
+    <div style="display:flex;align-items:center;gap:8px;">
+    <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+        <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="url(#hLogoGrad)"/>
+        <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs><linearGradient id="hLogoGrad" x1="3" y1="20" x2="56" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#1d4ed8"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs>
+    </svg>
     <h1 id="transferTitle">CloudMirror</h1>
+</div>
     <div class="status-badge paused" id="statusBadge">
       <div class="status-dot" style="animation:none;background:var(--text-dim)"></div>
       <span id="statusText">Loading...</span>
@@ -1430,10 +1441,10 @@ HTML = r"""<!DOCTYPE html>
     <button class="ctrl-btn pause" id="btnPause" onclick="doAction('pause')">Pause</button>
     <button class="ctrl-btn resume" id="btnResume" onclick="doAction('resume')" style="display:none">Resume</button>
     <button class="ctrl-btn" id="btnCancel" onclick="cancelTransfer()" style="background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);font-size:0.65rem;">Cancel</button>
-    <a href="/wizard" class="ctrl-btn" style="background:rgba(167,139,250,0.15);color:var(--purple);border:1px solid rgba(167,139,250,0.3);text-decoration:none;padding:6px 18px;font-size:0.75rem;">New Transfer</a>
+    <a href="/wizard" class="ctrl-btn" id="btnNewTransfer" style="background:rgba(167,139,250,0.15);color:var(--purple);border:1px solid rgba(167,139,250,0.3);text-decoration:none;padding:6px 18px;font-size:0.75rem;">New Transfer</a>
   </div>
-  <div class="header-right" style="display:flex;align-items:center;gap:12px;">
-    <div>
+  <div class="header-right" id="headerRight" style="display:flex;align-items:center;gap:12px;">
+    <div id="headerTimers">
       <div>Wall time: <span id="wallClock" style="color:var(--text)">--</span></div>
       <div>Uptime: <span id="uptimePct" style="color:var(--green)">--</span></div>
       <div>Updated: <span id="lastUpdate">--</span></div>
@@ -1444,10 +1455,16 @@ HTML = r"""<!DOCTYPE html>
 
 <!-- Empty state overlay -->
 <div id="emptyState" style="display:none;text-align:center;padding:80px 20px;">
-  <div style="font-size:4rem;margin-bottom:16px;opacity:0.5;">☁️</div>
+  <div style="margin-bottom:16px;opacity:0.5;">
+    <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+        <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="url(#emptyCloudGrad)"/>
+        <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs><linearGradient id="emptyCloudGrad" x1="3" y1="20" x2="56" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#1d4ed8"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs>
+    </svg>
+  </div>
   <div style="font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:8px;">No active transfer</div>
   <div style="font-size:0.9rem;color:var(--text-dim);margin-bottom:24px;">Set up a new transfer to start copying files between cloud services.</div>
-  <a href="/wizard" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:1rem;font-weight:600;background:linear-gradient(135deg,#1d4ed8,var(--blue));color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(59,130,246,0.3);">Start New Transfer</a>
+  <a href="/wizard" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:1rem;font-weight:600;background:linear-gradient(135deg,#1d4ed8,var(--blue));color:#fff;text-decoration:none;animation:ctaGlow 2s ease-in-out infinite;">Start New Transfer</a>
 </div>
 
 <!-- Big progress -->
@@ -1819,6 +1836,12 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','statusBadge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      const ht = document.getElementById('headerTimers');
+      if (ht) ht.style.display = 'none';
       return;
     }
     // If rclone is running but log not ready yet, show Starting state
@@ -1828,6 +1851,12 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = '';
       });
+      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','statusBadge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = '';
+      });
+      const ht2 = document.getElementById('headerTimers');
+      if (ht2) ht2.style.display = '';
       const badge = document.getElementById('statusBadge');
       badge.className = 'status-badge active';
       document.getElementById('statusText').textContent = 'Starting...';
@@ -1881,6 +1910,12 @@ async function refresh() {
       const el = document.getElementById(id);
       if (el) el.style.display = isEmpty ? 'none' : '';
     });
+    ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','statusBadge'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isEmpty ? 'none' : '';
+    });
+    const headerTimers = document.getElementById('headerTimers');
+    if (headerTimers) headerTimers.style.display = isEmpty ? 'none' : '';
     if (isEmpty) return;
 
     // Session badge
@@ -2448,10 +2483,10 @@ WIZARD_HTML = r'''<!DOCTYPE html>
   }
   .dot {
     width: 10px; height: 10px; border-radius: 50%;
-    background: var(--card-border); transition: all 0.3s;
+    background: var(--card-border); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .dot.active { background: var(--blue); transform: scale(1.2); }
-  .dot.done { background: var(--green); }
+  .dot.active { background: var(--blue); transform: scale(1.3); box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+  .dot.done { background: var(--green); transform: scale(1.1); }
 
   /* Step containers */
   .step {
@@ -2492,12 +2527,26 @@ WIZARD_HTML = r'''<!DOCTYPE html>
     .wizard-title { font-size: 1.3rem; }
   }
 
+
+  .advanced-toggle {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 12px 0; color: var(--text-dim); font-size: 0.8rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    border-top: 1px solid var(--card-border); margin-top: 16px;
+    user-select: none;
+  }
+  .advanced-toggle:hover { color: var(--text); }
+  .advanced-toggle .arrow { transition: transform 0.3s; font-size: 0.6rem; }
+  .advanced-toggle .arrow.open { transform: rotate(90deg); }
+  .advanced-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .advanced-content.open { max-height: 500px; }
+
   .provider-card {
     background: var(--card); border: 2px solid var(--card-border);
     border-radius: 14px; padding: 20px 16px; text-align: center;
     cursor: pointer; transition: all 0.2s; user-select: none;
   }
-  .provider-card:hover { border-color: var(--blue); background: var(--card-hover); transform: translateY(-2px); }
+  .provider-card:hover { border-color: var(--blue); background: var(--card-hover); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(59,130,246,0.15); }
   .provider-card.selected { border-color: var(--blue); background: rgba(59,130,246,0.08); }
   .provider-card.disabled {
     opacity: 0.35; pointer-events: none; cursor: not-allowed;
@@ -2521,7 +2570,7 @@ WIZARD_HTML = r'''<!DOCTYPE html>
     background: linear-gradient(135deg, #1d4ed8, var(--blue)); color: #fff;
     box-shadow: 0 4px 14px rgba(59,130,246,0.3);
   }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); filter: brightness(1.1); }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
   .btn-secondary {
     background: var(--card); color: var(--text-dim); border: 1px solid var(--card-border);
@@ -2631,7 +2680,18 @@ WIZARD_HTML = r'''<!DOCTYPE html>
   <!-- Step 1: Welcome -->
   <div class="step active" id="step1">
     <div class="wizard-card" style="text-align:center; padding: 48px 32px;">
-      <div class="welcome-logo">☁️</div>
+      <div class="welcome-logo">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="url(#cloudGrad)"/>
+        <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+            <linearGradient id="cloudGrad" x1="3" y1="20" x2="56" y2="48" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#1d4ed8"/>
+                <stop offset="1" stop-color="#60a5fa"/>
+            </linearGradient>
+        </defs>
+    </svg>
+</div>
       <div class="wizard-title">CloudMirror</div>
       <div class="wizard-subtitle">
         The easiest way to copy files between cloud storage services.<br>
@@ -2665,11 +2725,11 @@ WIZARD_HTML = r'''<!DOCTYPE html>
         <div class="provider-name">Dropbox</div>
       </div>
       <div class="provider-card" data-provider="mega" data-name="MEGA" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
-        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="800" fill="#d9272e">MEGA</text></svg></div>
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M8 30V10l8 12 8-12v20h-4V18l-4 6-4-6v12H8z" fill="#d9272e"/></svg></div>
         <div class="provider-name">MEGA</div>
       </div>
       <div class="provider-card" data-provider="s3" data-name="Amazon S3" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
-        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="800" fill="#ff9900">S3</text></svg></div>
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M20 4c-6.6 0-12 2.7-12 6v20c0 3.3 5.4 6 12 6s12-2.7 12-6V10c0-3.3-5.4-6-12-6z" fill="none" stroke="#ff9900" stroke-width="2.5"/><ellipse cx="20" cy="10" rx="12" ry="6" fill="none" stroke="#ff9900" stroke-width="2.5"/><path d="M8 20c0 3.3 5.4 6 12 6s12-2.7 12-6" fill="none" stroke="#ff9900" stroke-width="2"/></svg></div>
         <div class="provider-name">Amazon S3</div>
       </div>
       <div class="provider-card" data-provider="protondrive" data-name="Proton Drive" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
@@ -2677,7 +2737,7 @@ WIZARD_HTML = r'''<!DOCTYPE html>
         <div class="provider-name">Proton Drive</div>
       </div>
       <div class="provider-card" data-provider="local" data-name="Local Folder" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
-        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="24">&#x1F4BB;</text></svg></div>
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M6 10c0-1.1.9-2 2-2h8l3 3h13c1.1 0 2 .9 2 2v17c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V10z" fill="#60a5fa"/><path d="M6 15h28v15c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V15z" fill="#3b82f6"/></svg></div>
         <div class="provider-name">Local Folder</div>
       </div>
       <div class="provider-card" data-provider="other" data-name="Other" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
@@ -2809,6 +2869,11 @@ WIZARD_HTML = r'''<!DOCTYPE html>
           </div>
         </div>
       </div>
+      <div class="advanced-toggle" onclick="toggleAdvanced()">
+    <span class="arrow" id="advArrow">&#9654;</span>
+    Advanced Options
+</div>
+<div class="advanced-content" id="advancedContent">
       <div class="form-group">
         <label class="form-label" for="excludePatterns">Exclude Patterns (optional)</label>
         <input class="form-input" id="excludePatterns" type="text" placeholder="Trash, .Trash, Personal Vault">
@@ -2828,6 +2893,7 @@ WIZARD_HTML = r'''<!DOCTYPE html>
           </div>
         </label>
       </div>
+</div>
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="goTo(3)">Back</button>
@@ -2983,6 +3049,14 @@ async function goTo(step) {
 
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById('step' + step).classList.add('active');
+
+
+function toggleAdvanced() {
+    const content = document.getElementById('advancedContent');
+    const arrow = document.getElementById('advArrow');
+    content.classList.toggle('open');
+    arrow.classList.toggle('open');
+}
 
   const dots = document.querySelectorAll('.dot');
   dots.forEach((d, i) => {
