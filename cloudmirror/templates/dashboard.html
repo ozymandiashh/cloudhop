@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudMirror Dashboard</title>
+<script>(function(){var t=localStorage.getItem('cloudmirror-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+    <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="#6366f1"/>
+    <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+      </div>
+      <span class="logo-text" id="transferTitle">CloudMirror</span>
+    </div>
+    <div class="header-center">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="transfer-name" id="statusText">Loading...</span>
+      <span class="wall-time mono" id="wallClock">--</span>
+    </div>
+    <div class="header-right">
+      <span class="session-badge" id="sessionBadge">Session 1</span>
+      <button class="btn-icon ctrl-btn pause" id="btnPause" onclick="doAction('pause')" title="Pause transfer" aria-label="Pause transfer">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <button class="btn-icon ctrl-btn resume" id="btnResume" onclick="doAction('resume')" style="display:none" title="Resume transfer" aria-label="Resume transfer">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      </button>
+      <button class="btn-icon" id="btnCancel" onclick="cancelTransfer()" title="Cancel transfer" aria-label="Cancel transfer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <a href="/wizard" class="btn-icon" id="btnNewTransfer" title="New Transfer" aria-label="New Transfer" style="text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </a>
+      <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+        <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Hidden legacy elements for JS compatibility -->
+<div class="status-badge" id="statusBadge" style="display:none"><div class="status-dot"></div><span></span></div>
+
+<div class="container">
+
+<!-- ========== EMPTY STATE ========== -->
+<div id="emptyState" style="display:none;text-align:center;padding:80px 20px;">
+  <div style="margin-bottom:16px;opacity:0.5;">
+    <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+    <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="#6366f1"/>
+    <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+  </div>
+  <div style="font-size:1.3rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">No active transfer</div>
+  <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:24px;">Set up a new transfer to start copying files between cloud services.</div>
+  <a href="/wizard" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:1rem;font-weight:600;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;text-decoration:none;animation:ctaGlow 2s ease-in-out infinite;">Start New Transfer</a>
+</div>
+
+<!-- ========== BIG PROGRESS ========== -->
+<div class="progress-section card" id="dashboardContent">
+  <div class="progress-percentage mono"><span id="bigPct">0</span>%</div>
+  <div class="progress-bar-container">
+    <div class="progress-bar-track">
+      <div class="progress-prev" id="prevBar" style="width:0%"></div>
+      <div class="progress-bar-fill" id="bigBar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+    <div class="progress-glow" id="progressGlow" style="width:0%"></div>
+  </div>
+  <div class="progress-meta">
+    <span>Transferred <span class="val" id="bpTransferred">--</span> / <span class="val" id="bpTotal">--</span></span>
+    <span>ETA <span class="val" id="bpEta">--</span></span>
+  </div>
+  <div class="finish-time" id="finishTime"></div>
+  <div class="session-note" id="sessionNote"></div>
+  <div class="progress-sub-bars">
+    <div class="sub-bar-wrap">
+      <div class="sub-bar-label">
+        <span>Files</span>
+        <span><span id="filesDone">0</span> / <span id="filesTotal">0</span> (<span id="filesPct">0</span>%)</span>
+      </div>
+      <div class="sub-track"><div class="sub-fill files" id="filesBar" style="width:0%"></div></div>
+    </div>
+    <div class="sub-bar-wrap">
+      <div class="sub-bar-label">
+        <span>Checks</span>
+        <span><span id="checksDone">0</span> / <span id="checksTotal">0</span></span>
+      </div>
+      <div class="sub-track"><div class="sub-fill checks" id="checksBar" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== CONTROL BAR ========== -->
+<div id="controlBar" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:12px auto;max-width:1200px;padding:0 24px;flex-wrap:wrap;">
+  <button class="btn-icon ctrl-btn pause" id="btnPause2" onclick="doAction('pause')" title="Pause transfer" aria-label="Pause transfer">
+    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause
+  </button>
+  <button class="btn-icon ctrl-btn resume" id="btnResume2" onclick="doAction('resume')" style="display:none" title="Resume transfer" aria-label="Resume transfer">
+    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Resume
+  </button>
+  <button class="btn-icon" id="btnCancel2" onclick="cancelTransfer()" title="Cancel transfer" aria-label="Cancel transfer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel
+  </button>
+  <a href="/wizard" class="btn-icon" id="btnNewTransfer2" title="New Transfer" aria-label="New Transfer" style="text-decoration:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Transfer
+  </a>
+</div>
+
+<!-- ========== STATS GRID ========== -->
+<div class="stats-grid" id="statsGrid">
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <span class="stat-label">Current Speed</span>
+    </div>
+    <div class="stat-value green" id="speed">--</div>
+    <div class="stat-sub" id="speedSub">--</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+      </div>
+      <span class="stat-label">Avg Speed</span>
+    </div>
+    <div class="stat-value blue" id="avgSpeed">--</div>
+    <div class="stat-sub" id="avgSpeedSub">across all sessions</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <span class="stat-label">Peak Speed</span>
+    </div>
+    <div class="stat-value purple" id="peakSpeed">--</div>
+    <div class="stat-sub" id="peakTime">--</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <span class="stat-label">Active Time</span>
+    </div>
+    <div class="stat-value cyan" id="elapsed">--</div>
+    <div class="stat-sub" id="elapsedSub">this session: --</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      </div>
+      <span class="stat-label">Files/min</span>
+    </div>
+    <div class="stat-value orange" id="filesRate">--</div>
+    <div class="stat-sub" id="filesRateSub">--</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <span class="stat-label">Files Copied</span>
+    </div>
+    <div class="stat-value yellow" id="totalCopied">--</div>
+    <div class="stat-sub" id="totalCopiedSub">all sessions</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <span class="stat-label">Total Downtime</span>
+    </div>
+    <div class="stat-value pink" id="downtime">--</div>
+    <div class="stat-sub" id="downtimeSub">--</div>
+  </div>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <span class="stat-label">Errors</span>
+    </div>
+    <div class="stat-value" id="errors" style="color:var(--green)">0</div>
+    <div class="stat-sub" id="errorSub">none</div>
+  </div>
+</div>
+
+<!-- ========== SESSION TIMELINE ========== -->
+<div class="timeline-section card" id="timelineSection" style="display:none">
+  <div class="section-title" style="cursor:pointer;user-select:none;" onclick="toggleTimeline()">Session Timeline <span id="tlToggle" style="font-size:0.65rem;color:var(--text-tertiary);margin-left:6px;">&#9660;</span></div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- ========== CHARTS ROW ========== -->
+<div class="charts-row" id="chartsRow">
+  <div class="chart-card card">
+    <div class="chart-header">
+      <span class="chart-title">Transfer Speed</span>
+    </div>
+    <div class="chart-container"><svg class="chart-svg" id="speedChart" aria-label="Speed chart"></svg></div>
+  </div>
+  <div class="chart-card card">
+    <div class="chart-header">
+      <span class="chart-title">Data Progress</span>
+    </div>
+    <div class="chart-container"><svg class="chart-svg" id="progressChart" aria-label="Data progress chart"></svg></div>
+  </div>
+</div>
+
+<!-- ========== FILES CHART ========== -->
+<div class="chart-card-full card" id="chartsFullRow">
+  <div class="chart-header">
+    <span class="chart-title">Files Transferred Over Time</span>
+  </div>
+  <div class="chart-container"><svg class="chart-svg" id="filesChart" aria-label="Files transferred chart"></svg></div>
+</div>
+
+<!-- ========== DAILY VOLUME ========== -->
+<div class="chart-card card daily-chart-section" id="dailyChartSection">
+  <div class="chart-header">
+    <span class="chart-title">Daily Transfer Volume</span>
+  </div>
+  <div id="dailyBars" style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:12px;"></div>
+</div>
+
+<!-- ========== ERRORS ========== -->
+<div class="error-section" id="errorSection">
+  <h3>Errors</h3>
+  <div id="errorList"></div>
+</div>
+
+<!-- ========== ACTIVE TRANSFERS ========== -->
+<div class="active-section card" id="transfersSection">
+  <div class="section-header">
+    <h3>Active Transfers</h3>
+    <div class="transfer-count" id="transferCount">0 active</div>
+  </div>
+  <div id="transfersList"></div>
+</div>
+
+<!-- ========== BOTTOM ROW ========== -->
+<div class="bottom-row" id="recentSection">
+  <div class="completed-section card">
+    <div class="section-title">Recently Completed</div>
+    <div id="recentFiles"></div>
+  </div>
+  <div class="filetypes-section card">
+    <div class="section-title">File Types</div>
+    <div id="fileTypes"></div>
+  </div>
+</div>
+
+<!-- ========== FOOTER ========== -->
+<footer class="footer" id="footer">
+  CloudMirror Dashboard &middot; Auto-refresh 5s &middot; <span id="footerInfo">--</span> &middot; Uptime: <span id="uptimePct">--</span> &middot; Updated: <span id="lastUpdate">--</span> &middot; <a href="#" onclick="showHistory();return false;">Transfer History</a>
+</footer>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="connLost" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--red);color:#fff;text-align:center;padding:10px 16px;font-size:0.85rem;font-weight:600;z-index:300;">Connection lost. Dashboard cannot reach the server.</div>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

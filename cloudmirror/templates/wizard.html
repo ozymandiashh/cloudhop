@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudMirror Setup</title>
+<script>(function(){var t=localStorage.getItem('cloudmirror-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/wizard.css">
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark/light mode">&#9790;</button>
+
+<div class="wizard-container">
+  <div class="progress-dots" id="progressDots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- Step 1: Welcome -->
+  <div class="step active" id="step1">
+    <div class="wizard-card" style="text-align:center; padding: 48px 32px;">
+      <div class="welcome-logo">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="url(#cloudGrad)"/>
+        <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+            <linearGradient id="cloudGrad" x1="3" y1="20" x2="56" y2="48" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5"/>
+                <stop offset="1" stop-color="#818cf8"/>
+            </linearGradient>
+        </defs>
+    </svg>
+</div>
+      <div class="wizard-title">CloudMirror</div>
+      <div class="wizard-subtitle">
+        The easiest way to copy files between cloud storage services.<br>
+        No technical knowledge needed.
+      </div>
+      <button class="btn btn-primary btn-big" onclick="goTo(2)">
+        Get Started
+      </button>
+      <div style="margin-top: 16px; font-size: 0.75rem; color: var(--text-muted);">
+        Supports Google Drive, OneDrive, Dropbox, S3, and more
+      </div>
+      <div id="welcomeRcloneCheck" style="margin-top:12px;font-size:0.75rem;text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: Source -->
+  <div class="step" id="step2">
+    <div class="wizard-title" style="font-size:1.5rem;">Where are your files?</div>
+    <div class="wizard-subtitle">Select the cloud storage where your files currently live.</div>
+    <div class="providers-grid" id="sourceGrid">
+      <div class="provider-card" data-provider="drive" data-name="Google Drive" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><div style="font-size:2.2rem;font-weight:800;line-height:1;"><span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span></div><div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px;">Drive</div></div>
+        <div class="provider-name">Google Drive</div>
+      </div>
+      <div class="provider-card" data-provider="onedrive" data-name="OneDrive" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="48" height="32" viewBox="0 0 48 32"><path d="M39.5 16C39.5 9.1 33.9 3.5 27 3.5c-5.1 0-9.5 3-11.5 7.4C14.8 10.3 14 10 13 10c-2.8 0-5 2.2-5 5 0 .3 0 .6.1.9C4.6 17 2 20.1 2 23.5 2 27.6 5.4 31 9.5 31h28c3.6 0 6.5-2.9 6.5-6.5S43.1 18 39.5 16z" fill="#0078d4"/></svg></div>
+        <div class="provider-name">OneDrive</div>
+      </div>
+      <div class="provider-card" data-provider="dropbox" data-name="Dropbox" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M12 2L2 8.5l10 6.5 10-6.5L12 2zm16 0L18 8.5l10 6.5 10-6.5L28 2zM2 21.5L12 28l10-6.5-10-6.5L2 21.5zm26-6.5l-10 6.5 10 6.5 10-6.5-10-6.5zM12 29.5l10 6.5 10-6.5-10-6.5-10 6.5z" fill="#0061fe"/></svg></div>
+        <div class="provider-name">Dropbox</div>
+      </div>
+      <div class="provider-card" data-provider="mega" data-name="MEGA" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M8 30V10l8 12 8-12v20h-4V18l-4 6-4-6v12H8z" fill="#d9272e"/></svg></div>
+        <div class="provider-name">MEGA</div>
+      </div>
+      <div class="provider-card" data-provider="s3" data-name="Amazon S3" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M20 4c-6.6 0-12 2.7-12 6v20c0 3.3 5.4 6 12 6s12-2.7 12-6V10c0-3.3-5.4-6-12-6z" fill="none" stroke="#ff9900" stroke-width="2.5"/><ellipse cx="20" cy="10" rx="12" ry="6" fill="none" stroke="#ff9900" stroke-width="2.5"/><path d="M8 20c0 3.3 5.4 6 12 6s12-2.7 12-6" fill="none" stroke="#ff9900" stroke-width="2"/></svg></div>
+        <div class="provider-name">Amazon S3</div>
+      </div>
+      <div class="provider-card" data-provider="protondrive" data-name="Proton Drive" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M20 3L6 10v10c0 9.5 5.9 18.4 14 20 8.1-1.6 14-10.5 14-20V10L20 3z" fill="#6d4aff"/></svg></div>
+        <div class="provider-name">Proton Drive</div>
+      </div>
+      <div class="provider-card" data-provider="local" data-name="Local Folder" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M6 10c0-1.1.9-2 2-2h8l3 3h13c1.1 0 2 .9 2 2v17c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V10z" fill="#60a5fa"/><path d="M6 15h28v15c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V15z" fill="#3b82f6"/></svg></div>
+        <div class="provider-name">Local Folder</div>
+      </div>
+      <div class="provider-card" data-provider="other" data-name="Other" tabindex="0" role="button" onclick="selectSource(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSource(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="20">&#x2699;&#xFE0F;</text></svg></div>
+        <div class="provider-name">Other</div>
+      </div>
+    </div>
+    <div class="local-path-input" id="sourceLocalPath">
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label" for="sourcePathInput">Folder Path</label>
+        <input class="form-input" id="sourcePathInput" type="text" placeholder="e.g. /Users/you/Documents">
+        <div id="sourcePathError" style="display:none;font-size:0.75rem;color:var(--red);margin-top:6px;"></div>
+        <div class="form-hint">The folder on your computer where your files are stored.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <button type="button" class="btn-secondary" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('sourcePathInput').value=((window._homeDir||'/tmp')+'/Desktop');document.getElementById('sourcePathInput').dispatchEvent(new Event('input'))">Desktop</button>
+          <button type="button" class="btn-secondary" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('sourcePathInput').value=((window._homeDir||'/tmp')+'/Documents');document.getElementById('sourcePathInput').dispatchEvent(new Event('input'))">Documents</button>
+          <button type="button" class="btn-secondary" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('sourcePathInput').value=((window._homeDir||'/tmp')+'/Downloads');document.getElementById('sourcePathInput').dispatchEvent(new Event('input'))">Downloads</button>
+        </div>
+      </div>
+    </div>
+    <div class="local-path-input" id="sourceOtherName">
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label" for="sourceOtherInput">Remote Name</label>
+        <input class="form-input" id="sourceOtherInput" type="text" placeholder="myremote">
+        <div class="form-hint">For cloud services not listed above. Enter the name you set up using rclone (e.g. "backblaze", "wasabi", "pcloud").</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(1)">Back</button>
+      <button class="btn btn-primary" id="sourceNext" onclick="goTo(3)" disabled>Next</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Destination -->
+  <div class="step" id="step3">
+    <div class="wizard-title" style="font-size:1.5rem;">Where do you want to copy them?</div>
+    <div class="wizard-subtitle">Select the destination cloud storage.</div>
+    <div class="providers-grid" id="destGrid">
+      <div class="provider-card" data-provider="drive" data-name="Google Drive" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><div style="font-size:2.2rem;font-weight:800;line-height:1;"><span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span></div><div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px;">Drive</div></div>
+        <div class="provider-name">Google Drive</div>
+      </div>
+      <div class="provider-card" data-provider="onedrive" data-name="OneDrive" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="48" height="32" viewBox="0 0 48 32"><path d="M39.5 16C39.5 9.1 33.9 3.5 27 3.5c-5.1 0-9.5 3-11.5 7.4C14.8 10.3 14 10 13 10c-2.8 0-5 2.2-5 5 0 .3 0 .6.1.9C4.6 17 2 20.1 2 23.5 2 27.6 5.4 31 9.5 31h28c3.6 0 6.5-2.9 6.5-6.5S43.1 18 39.5 16z" fill="#0078d4"/></svg></div>
+        <div class="provider-name">OneDrive</div>
+      </div>
+      <div class="provider-card" data-provider="dropbox" data-name="Dropbox" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M12 2L2 8.5l10 6.5 10-6.5L12 2zm16 0L18 8.5l10 6.5 10-6.5L28 2zM2 21.5L12 28l10-6.5-10-6.5L2 21.5zm26-6.5l-10 6.5 10 6.5 10-6.5-10-6.5zM12 29.5l10 6.5 10-6.5-10-6.5-10 6.5z" fill="#0061fe"/></svg></div>
+        <div class="provider-name">Dropbox</div>
+      </div>
+      <div class="provider-card" data-provider="mega" data-name="MEGA" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="800" fill="#d9272e">MEGA</text></svg></div>
+        <div class="provider-name">MEGA</div>
+      </div>
+      <div class="provider-card" data-provider="s3" data-name="Amazon S3" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="800" fill="#ff9900">S3</text></svg></div>
+        <div class="provider-name">Amazon S3</div>
+      </div>
+      <div class="provider-card" data-provider="protondrive" data-name="Proton Drive" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M20 3L6 10v10c0 9.5 5.9 18.4 14 20 8.1-1.6 14-10.5 14-20V10L20 3z" fill="#6d4aff"/></svg></div>
+        <div class="provider-name">Proton Drive</div>
+      </div>
+      <div class="provider-card" data-provider="local" data-name="Local Folder" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="24">&#x1F4BB;</text></svg></div>
+        <div class="provider-name">Local Folder</div>
+      </div>
+      <div class="provider-card" data-provider="other" data-name="Other" tabindex="0" role="button" onclick="selectDest(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDest(this)}">
+        <div class="provider-icon"><svg width="40" height="40" viewBox="0 0 40 40"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="20">&#x2699;&#xFE0F;</text></svg></div>
+        <div class="provider-name">Other</div>
+      </div>
+    </div>
+    <div class="local-path-input" id="destLocalPath">
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label" for="destPathInput">Save to Folder</label>
+        <input class="form-input" id="destPathInput" type="text" placeholder="e.g. /Users/you/Desktop/Backup">
+        <div id="destPathError" style="display:none;font-size:0.75rem;color:var(--red);margin-top:6px;"></div>
+        <div class="form-hint">Where to save the copied files on your computer.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <button type="button" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('destPathInput').value=((window._homeDir||'/tmp')+'/Desktop/CloudMirror-Backup');document.getElementById('destPathInput').dispatchEvent(new Event('input'))">Desktop/CloudMirror-Backup</button>
+          <button type="button" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('destPathInput').value=((window._homeDir||'/tmp')+'/Documents/CloudMirror-Backup');document.getElementById('destPathInput').dispatchEvent(new Event('input'))">Documents/CloudMirror-Backup</button>
+        </div>
+      </div>
+    </div>
+    <div class="local-path-input" id="destOtherName">
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label" for="destOtherInput">Remote Name</label>
+        <input class="form-input" id="destOtherInput" type="text" placeholder="myremote">
+        <div class="form-hint">For cloud services not listed above. Enter the name you set up using rclone (e.g. "backblaze", "wasabi", "pcloud").</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(2)">Back</button>
+      <button class="btn btn-primary" id="destNext" onclick="goTo(4)" disabled>Next</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Options -->
+  <div class="step" id="step4">
+    <div class="wizard-title" style="font-size:1.5rem;">Transfer Options</div>
+    <div class="wizard-subtitle">Fine-tune your transfer. All fields are optional.</div>
+    <div class="wizard-card">
+      <div class="form-group">
+        <label class="form-label" for="sourceSubfolder">Source Subfolder (optional)</label>
+        <input class="form-input" id="sourceSubfolder" type="text" placeholder="e.g. Documents/Work">
+        <div class="form-hint">Leave empty to copy everything from the root</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="destSubfolder">Destination Subfolder (optional)</label>
+        <input class="form-input" id="destSubfolder" type="text" placeholder="e.g. Backup/2024">
+        <div class="form-hint">Leave empty to copy to the root</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Transfer Speed</label>
+        <div class="speed-options" role="radiogroup" aria-label="Transfer speed">
+          <div class="speed-card" role="radio" aria-checked="false" onclick="selectSpeed(this, '4')">
+            <input type="radio" name="speed" value="4">
+            <div class="speed-label">Normal</div>
+            <div class="speed-desc">4 files at a time</div>
+          </div>
+          <div class="speed-card selected" role="radio" aria-checked="true" onclick="selectSpeed(this, '8')">
+            <input type="radio" name="speed" value="8" checked>
+            <div class="speed-label">Fast</div>
+            <div class="speed-desc">8 files at a time</div>
+          </div>
+          <div class="speed-card" role="radio" aria-checked="false" onclick="selectSpeed(this, '16')">
+            <input type="radio" name="speed" value="16">
+            <div class="speed-label">Maximum</div>
+            <div class="speed-desc">16 files at a time</div>
+          </div>
+        </div>
+      </div>
+      <div class="advanced-toggle" onclick="toggleAdvanced()">
+    <span class="arrow" id="advArrow">&#9654;</span>
+    Advanced Options
+</div>
+<div class="advanced-content" id="advancedContent">
+      <div class="form-group">
+        <label class="form-label" for="excludePatterns">Exclude Patterns (optional)</label>
+        <input class="form-input" id="excludePatterns" type="text" placeholder="Trash, .Trash, Personal Vault">
+        <div class="form-hint">Comma-separated folder names to skip</div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" for="bwLimit">Bandwidth Limit (optional)</label>
+        <input class="form-input" id="bwLimit" type="text" placeholder="e.g. 10M, 1G, 500K">
+        <div class="form-hint">Limit upload/download speed. Leave empty for unlimited.</div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;margin-top:20px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="useChecksum" style="width:18px;height:18px;">
+          <div>
+            <div class="form-label" style="margin-bottom:0;">Verify with checksums</div>
+            <div class="form-hint">Slower but ensures file integrity. Recommended for important data.</div>
+          </div>
+        </label>
+      </div>
+</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(3)">Back</button>
+      <button class="btn btn-primary" onclick="goTo(5)">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Connect -->
+  <div class="step" id="step5">
+    <div class="wizard-title" style="font-size:1.5rem;">Connect Your Accounts</div>
+    <div class="wizard-subtitle">Authorize CloudMirror to access your cloud storage.</div>
+    <div class="wizard-card" id="connectList">
+      <!-- Filled dynamically -->
+    </div>
+    <div id="rcloneStatus" style="text-align:center; margin-bottom:16px;"></div>
+    <div id="connectHint" style="font-size:0.8rem;color:var(--text-dim);margin-bottom:16px;text-align:center;"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(4)">Back</button>
+      <button class="btn btn-primary" id="connectNext" onclick="goTo(6)" disabled>Next</button>
+    </div>
+  </div>
+
+  <!-- Step 6: Ready -->
+  <div class="step" id="step6">
+    <div class="wizard-title" style="font-size:1.5rem;">Ready to Go!</div>
+    <div class="wizard-subtitle">Review your transfer and start copying.</div>
+    <div class="wizard-card" id="summaryCard">
+      <!-- Filled dynamically -->
+    </div>
+    <div class="btn-row" style="flex-direction:column; gap:12px;">
+      <div style="text-align:center;padding:12px 16px;margin-bottom:16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.8rem;color:var(--green);">
+        This will <strong>copy</strong> your files. Your originals will stay untouched.
+      </div>
+      <button class="btn btn-secondary btn-big" id="previewBtn" onclick="previewTransfer()" style="margin-bottom:12px;">
+        Preview (see what will be copied)
+      </button>
+      <div id="previewResult" style="display:none;margin-bottom:16px;padding:16px;background:var(--bg);border:1px solid var(--card-border);border-radius:12px;font-size:0.85rem;color:var(--text);"></div>
+      <div id="wizardError" style="display:none;padding:12px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;font-size:0.85rem;color:var(--red);text-align:center;margin-bottom:12px;"></div>
+      <button class="btn btn-primary btn-big" id="startBtn" onclick="startTransfer()">
+        Start Transfer
+      </button>
+      <button class="btn btn-secondary" onclick="goTo(5)" style="align-self:flex-start;">Back</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/wizard.js"></script>
+</body>
+</html>
