@@ -367,8 +367,10 @@ def load_state():
 def save_state(state):
     """Save persistent state to disk."""
     try:
-        with open(STATE_FILE, "w") as f:
+        tmp = STATE_FILE + ".tmp"
+        with open(tmp, "w") as f:
             json.dump(state, f, indent=2)
+        os.replace(tmp, STATE_FILE)
     except Exception as e:
         print(f"Warning: Could not save state: {e}")
 
@@ -376,7 +378,7 @@ def save_state(state):
 # ─── Byte conversion helpers ─────────────────────────────────────────────────
 
 def to_bytes(size_str):
-    """Convert '90.054 GiB' or '103.010 MiB' to bytes."""
+    """Convert '90.054 GiB' or '103.010 MiB' or '1.5 GB' to bytes."""
     m = RE_SIZE_VALUE.match(size_str.strip())
     if not m:
         return 0
@@ -390,6 +392,14 @@ def to_bytes(size_str):
         return val * 1024
     elif "TIB" in unit or "TI" in unit:
         return val * 1024 * 1024 * 1024 * 1024
+    elif "TB" in unit:
+        return val * 1000 * 1000 * 1000 * 1000
+    elif "GB" in unit:
+        return val * 1000 * 1000 * 1000
+    elif "MB" in unit:
+        return val * 1000 * 1000
+    elif "KB" in unit:
+        return val * 1000
     return val
 
 
@@ -450,6 +460,8 @@ def downsample(arr, target=CHART_DOWNSAMPLE_TARGET):
     for i in range(target):
         idx = int(i * step)
         out.append(arr[idx])
+    if out and out[-1] != arr[-1]:
+        out.append(arr[-1])
     return out
 
 
@@ -835,7 +847,10 @@ def scan_full_log():
         state["original_total_files"] = original_files
         state["all_file_types"] = file_types
         state["total_copied_count"] = len(total_copied_set)
-        state["_running_copied_files_set"] = list(total_copied_set)
+        _capped_copied = list(total_copied_set)
+        if len(_capped_copied) > 50000:
+            _capped_copied = _capped_copied[-50000:]
+        state["_running_copied_files_set"] = _capped_copied
 
         # Cache chart history for parse_current() to read cheaply
         state["cached_speed_history"] = downsample(speed_hist)
@@ -853,7 +868,6 @@ def scan_full_log():
         state["_running_prev_total_bytes"] = prev_total_bytes
         state["_running_prev_files_done"] = prev_files_done
         state["_running_prev_files_total"] = prev_files_total
-        MAX_HISTORY_ENTRIES = 50000
         if len(speed_hist) > MAX_HISTORY_ENTRIES:
             speed_hist = speed_hist[-MAX_HISTORY_ENTRIES:]
         if len(pct_hist) > MAX_HISTORY_ENTRIES:
@@ -1042,7 +1056,7 @@ def parse_current():
         if orig_total > 0:
             global_total = orig_total
         else:
-            global_total = cur_total_bytes + cumul_bytes
+            global_total = max(cur_total_bytes, cumul_bytes + cur_transferred_bytes)
 
         if global_transferred > global_total and global_total > 0:
             global_total = global_transferred
@@ -1203,6 +1217,7 @@ HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CloudMirror Dashboard</title>
+<script>(function(){var t=localStorage.getItem('cloudmirror-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1390,6 +1405,10 @@ body::before {
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary);
+  max-width: 40vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .status-dot {
   width: 8px;
@@ -1963,6 +1982,7 @@ body::before {
 .error-item {
   font-size: 12px; color: var(--red); padding: 4px 0;
   font-family: 'JetBrains Mono', monospace;
+  word-break: break-all;
 }
 
 /* ========== DAILY CHART ========== */
@@ -2022,7 +2042,10 @@ body::before {
   <div class="header-inner">
     <div class="header-left">
       <div class="logo">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+    <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="#6366f1"/>
+    <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
       </div>
       <span class="logo-text" id="transferTitle">CloudMirror</span>
     </div>
@@ -2055,14 +2078,16 @@ body::before {
 
 <!-- Hidden legacy elements for JS compatibility -->
 <div class="status-badge" id="statusBadge" style="display:none"><div class="status-dot"></div><span></span></div>
-<div id="controlBar" style="display:none"></div>
 
 <div class="container">
 
 <!-- ========== EMPTY STATE ========== -->
 <div id="emptyState" style="display:none;text-align:center;padding:80px 20px;">
   <div style="margin-bottom:16px;opacity:0.5;">
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="url(#emptyGrad)"/><defs><linearGradient id="emptyGrad" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs></svg>
+    <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+    <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="#6366f1"/>
+    <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
   </div>
   <div style="font-size:1.3rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">No active transfer</div>
   <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:24px;">Set up a new transfer to start copying files between cloud services.</div>
@@ -2101,6 +2126,22 @@ body::before {
       <div class="sub-track"><div class="sub-fill checks" id="checksBar" style="width:0%"></div></div>
     </div>
   </div>
+</div>
+
+<!-- ========== CONTROL BAR ========== -->
+<div id="controlBar" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:12px auto;max-width:1200px;padding:0 24px;flex-wrap:wrap;">
+  <button class="btn-icon ctrl-btn pause" id="btnPause2" onclick="doAction('pause')" title="Pause transfer" aria-label="Pause transfer">
+    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause
+  </button>
+  <button class="btn-icon ctrl-btn resume" id="btnResume2" onclick="doAction('resume')" style="display:none" title="Resume transfer" aria-label="Resume transfer">
+    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Resume
+  </button>
+  <button class="btn-icon" id="btnCancel2" onclick="cancelTransfer()" title="Cancel transfer" aria-label="Cancel transfer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel
+  </button>
+  <a href="/wizard" class="btn-icon" id="btnNewTransfer2" title="New Transfer" aria-label="New Transfer" style="text-decoration:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Transfer
+  </a>
 </div>
 
 <!-- ========== STATS GRID ========== -->
@@ -2263,7 +2304,7 @@ body::before {
 <div id="connLost" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--red);color:#fff;text-align:center;padding:10px 16px;font-size:0.85rem;font-weight:600;z-index:300;">Connection lost. Dashboard cannot reach the server.</div>
 
 <script>
-function getCsrfToken(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrf_token='))?.split('=')[1]||''}
+function getCsrfToken(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrf_token='))?.substring('csrf_token='.length)||''}
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
@@ -2292,6 +2333,7 @@ function showConfirmModal(message) {
     document.addEventListener('keydown', escHandler);
     overlay.querySelector('#_cm_ok').onclick = () => { cleanup(); resolve(true); };
     overlay.querySelector('#_cm_cancel').onclick = () => { cleanup(); resolve(false); };
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) { cleanup(); resolve(false); } });
     overlay.querySelector('#_cm_ok').focus();
   });
 }
@@ -2337,12 +2379,6 @@ function fmtDuration(sec) {
 }
 
 function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
-  // Skip redraw if data unchanged
-  const dataKey = svgId + JSON.stringify(data.slice(-5));
-  if (drawAreaChart._cache && drawAreaChart._cache[svgId] === dataKey) return;
-  if (!drawAreaChart._cache) drawAreaChart._cache = {};
-  drawAreaChart._cache[svgId] = dataKey;
-
   const svg = document.getElementById(svgId);
   if (!svg) return;
   const cs = getComputedStyle(document.documentElement);
@@ -2350,6 +2386,11 @@ function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
   const cText = cs.getPropertyValue('--chart-text').trim() || '#2a3555';
   const w = svg.clientWidth || 500;
   const h = svg.clientHeight || 140;
+  // Skip redraw if data and dimensions unchanged
+  const dataKey = svgId + w + 'x' + h + JSON.stringify(data.slice(-5));
+  if (drawAreaChart._cache && drawAreaChart._cache[svgId] === dataKey) return;
+  if (!drawAreaChart._cache) drawAreaChart._cache = {};
+  drawAreaChart._cache[svgId] = dataKey;
   const realData = data.filter(v => v !== null);
   if (realData.length < 2) {
     const emptyColor = cs.getPropertyValue('--text-secondary').trim() || '#6b7280';
@@ -2504,6 +2545,7 @@ async function refresh() {
     const d = await res.json();
     failCount = 0;
     document.getElementById('connLost').style.display = 'none';
+    document.querySelector('.header').style.top = '0';
     document.body.style.paddingTop = '';
 
     // Show empty state if API returns error (no log file) AND rclone is NOT running
@@ -2513,10 +2555,11 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
-      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge'].forEach(id => {
+      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','btnPause2','btnResume2','btnCancel2','btnNewTransfer2'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+      { const cb = document.getElementById('controlBar'); if (cb) cb.style.display = 'none'; }
       updateStatusDot('idle');
       document.getElementById('statusText').textContent = 'Idle';
       return;
@@ -2532,6 +2575,7 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = '';
       });
+      { const cb = document.getElementById('controlBar'); if (cb) cb.style.display = 'flex'; }
       updateStatusDot('active');
       document.getElementById('statusText').textContent = 'Starting...';
       return;
@@ -2563,6 +2607,7 @@ async function refresh() {
       updateStatusDot('active');
       document.getElementById('statusText').textContent = 'Transferring';
       updateButtons(true);
+      if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = setInterval(refresh, 5000); }
     }
 
     // Empty state: show when truly no transfer (not running, no data)
@@ -2572,10 +2617,11 @@ async function refresh() {
       const el = document.getElementById(id);
       if (el) el.style.display = isEmpty ? 'none' : '';
     });
-    ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge'].forEach(id => {
+    ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','btnPause2','btnResume2','btnCancel2','btnNewTransfer2'].forEach(id => {
       const el = document.getElementById(id);
       if (el && isEmpty) el.style.display = 'none';
     });
+    {const cb=document.getElementById('controlBar');if(cb)cb.style.display=isEmpty?'none':'flex';}
     if (isEmpty) return;
 
     // Session badge
@@ -2606,25 +2652,7 @@ async function refresh() {
     if (glowEl) glowEl.style.width = Math.max(pct, 0.2) + '%';
     if (d.global_transferred) document.getElementById('bpTransferred').textContent = d.global_transferred;
     if (d.global_total) document.getElementById('bpTotal').textContent = d.global_total;
-    if (pct >= 100) {
-      document.getElementById('bpEta').textContent = 'Complete';
-      document.getElementById('finishTime').textContent = '';
-    } else if (d.eta) {
-      document.getElementById('bpEta').textContent = fmtEta(d.eta);
-      const etaStr = d.eta;
-      let etaSec = 0;
-      const ed = etaStr.match(/(\d+)d/); if (ed) etaSec += parseInt(ed[1]) * 86400;
-      const eh = etaStr.match(/(\d+)h/); if (eh) etaSec += parseInt(eh[1]) * 3600;
-      const em = etaStr.match(/(\d+)m/); if (em) etaSec += parseInt(em[1]) * 60;
-      const es = etaStr.match(/([\d.]+)s/); if (es) etaSec += parseFloat(es[1]);
-      if (etaSec > 0 && etaSec < 604800) {
-        const finish = new Date(Date.now() + etaSec * 1000);
-        const opts = { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
-        document.getElementById('finishTime').textContent = 'Finish: ' + finish.toLocaleDateString(undefined, opts);
-      } else {
-        document.getElementById('finishTime').textContent = '';
-      }
-    }
+    // ETA is computed by the smoothed average-speed block below (near end of refresh).
 
     // Previous sessions bar overlay - disabled (was broken/confusing)
     document.getElementById('prevBar').style.width = '0%';
@@ -2658,6 +2686,7 @@ async function refresh() {
     // Speed display
     const speedMbs = parseSpeed(d.speed || '');
     if (d.speed && !d.finished) {
+      document.getElementById('speed').style.fontSize = '';
       document.getElementById('speed').textContent = fmtSpeed(speedMbs);
       const realSpeeds = speedHistory.filter(v => v !== null);
       if (realSpeeds.length >= 2) {
@@ -2802,7 +2831,7 @@ async function refresh() {
         const isQueued = t.pct === 0 && (!t.speed || t.speed === '--');
         let eta = t.eta || '';
         if (isStalled || (eta && /^\d{4,}h/.test(eta))) eta = '';
-        let statusHtml = t.speed || '--';
+        let statusHtml = esc(t.speed || '--');
         let barColor = 'var(--primary)';
         if (isStalled) {
           statusHtml = '<span style="color:var(--orange);font-size:0.65rem;font-weight:600">STALLED</span>';
@@ -2816,7 +2845,7 @@ async function refresh() {
           <div class="mini-bar"><div class="mini-fill" style="width:${t.pct}%;background:${barColor}"></div></div>
           <div class="tpct">${t.pct}%</div>
           <div class="tspeed">${statusHtml}</div>
-          <div class="teta">${eta}</div>
+          <div class="teta">${esc(eta)}</div>
         </div>`;
       }).join('');
     } else {
@@ -2903,7 +2932,7 @@ async function refresh() {
   } catch(e) {
     console.error('Refresh error:', e);
     failCount++;
-    if (failCount >= 3) { document.getElementById('connLost').style.display = 'block'; document.body.style.paddingTop = '48px'; }
+    if (failCount >= 3) { document.getElementById('connLost').style.display = 'block'; document.body.style.paddingTop = '48px'; document.querySelector('.header').style.top = '48px'; }
   }
 }
 
@@ -2919,9 +2948,15 @@ function showToast(msg, color) {
 async function cancelTransfer() {
   if (!await showConfirmModal('Stop the transfer and start a new one?')) return;
   try {
-    await fetch('/api/pause', {method:'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()}});
-  } catch(e) {}
-  window.location.href = '/wizard';
+    const res = await fetch('/api/pause', {method:'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()}});
+    if (res.ok) {
+      window.location.href = '/wizard';
+    } else {
+      showToast('Failed to cancel transfer.', 'var(--red)');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'var(--red)');
+  }
 }
 
 async function doAction(action) {
@@ -2951,12 +2986,18 @@ async function doAction(action) {
 function updateButtons(isRunning) {
   const btnPause = document.getElementById('btnPause');
   const btnResume = document.getElementById('btnResume');
+  const btnPause2 = document.getElementById('btnPause2');
+  const btnResume2 = document.getElementById('btnResume2');
   if (isRunning) {
     btnPause.style.display = '';
     btnResume.style.display = 'none';
+    if (btnPause2) btnPause2.style.display = '';
+    if (btnResume2) btnResume2.style.display = 'none';
   } else {
     btnPause.style.display = 'none';
     btnResume.style.display = '';
+    if (btnPause2) btnPause2.style.display = 'none';
+    if (btnResume2) btnResume2.style.display = '';
   }
 }
 
@@ -3036,7 +3077,7 @@ function toggleTimeline() {
 
 // Sound notification when transfer completes or errors appear
 let prevPct = 0;
-let prevErrors = 0;
+let prevErrors = -1;
 function checkNotifications(d) {
   const pct = d.global_pct || 0;
   if (pct >= 100 && prevPct < 100 && prevPct > 0) {
@@ -3093,12 +3134,16 @@ async function showHistory() {
     html += '<button onclick="this.parentElement.parentElement.remove()" style="margin-top:16px;padding:10px 24px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-size:0.85rem;">Close</button>';
     html += '</div></div>';
     document.body.insertAdjacentHTML('beforeend', html);
+    const histModal = document.querySelector('[data-history-modal]');
+    function histEsc(e) { if (e.key === 'Escape' && histModal) { histModal.remove(); document.removeEventListener('keydown', histEsc); } }
+    document.addEventListener('keydown', histEsc);
   } catch(e) { showToast('Could not load history.', 'var(--red)'); }
 }
 
 refresh();
 let refreshInterval = setInterval(refresh, 5000);
 window.addEventListener('resize', () => {
+  if (drawAreaChart._cache) drawAreaChart._cache = {};
   drawAreaChart('speedChart', speedHistory, '#22c55e', 'speedGrad', v => fmtSpeed(v), true);
   drawAreaChart('progressChart', progressHistory, '#3b82f6', 'progGrad', v => v.toFixed(0) + '%', true, 100);
   drawAreaChart('filesChart', filesHistory, '#a78bfa', 'filesGrad', v => Math.round(v).toLocaleString(), true);
@@ -3112,13 +3157,16 @@ window.addEventListener('resize', () => {
 # ─── Wizard HTML ──────────────────────────────────────────────────────────────
 
 WIZARD_HTML = r'''<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CloudMirror Setup</title>
+<script>(function(){var t=localStorage.getItem('cloudmirror-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   *:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   html { scrollbar-width: none; }
@@ -3645,7 +3693,12 @@ WIZARD_HTML = r'''<!DOCTYPE html>
 </div>
 
 <script>
-function getCsrfToken(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrf_token='))?.split('=')[1]||''}
+function getCsrfToken(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrf_token='))?.substring('csrf_token='.length)||''}
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
 // State
 let currentStep = 1;
 let sourceProvider = null;
@@ -3821,6 +3874,16 @@ function selectSource(card) {
     if (!input.dataset.listening) {
       input.dataset.listening = 'true';
       input.addEventListener('input', () => {
+        sourceName = input.value.trim();
+        document.getElementById('sourceNext').disabled = !input.value.trim();
+      });
+    }
+  } else if (sourceProvider === 'local') {
+    const input = document.getElementById('sourcePathInput');
+    document.getElementById('sourceNext').disabled = !input.value.trim();
+    if (!input.dataset.listening) {
+      input.dataset.listening = 'true';
+      input.addEventListener('input', () => {
         document.getElementById('sourceNext').disabled = !input.value.trim();
       });
     }
@@ -3846,6 +3909,16 @@ function selectDest(card) {
   // For Other provider, only enable Next when name is entered
   if (destProvider === 'other') {
     const input = document.getElementById('destOtherInput');
+    document.getElementById('destNext').disabled = !input.value.trim();
+    if (!input.dataset.listening) {
+      input.dataset.listening = 'true';
+      input.addEventListener('input', () => {
+        destName = input.value.trim();
+        document.getElementById('destNext').disabled = !input.value.trim();
+      });
+    }
+  } else if (destProvider === 'local') {
+    const input = document.getElementById('destPathInput');
     document.getElementById('destNext').disabled = !input.value.trim();
     if (!input.dataset.listening) {
       input.dataset.listening = 'true';
@@ -4076,11 +4149,6 @@ function buildSummary() {
   let srcPath = getSourcePath();
   let dstPath = getDestPath();
 
-  function esc(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
   card.innerHTML = `
     <div class="summary-row">
       <span class="summary-label">Source</span>
@@ -4117,7 +4185,7 @@ function getSourcePath() {
     const p = document.getElementById('sourcePathInput').value.trim();
     if (!p) { const errEl = document.getElementById('sourcePathError'); errEl.textContent = 'Please enter a folder path.'; errEl.style.display = 'block'; return null; }
     document.getElementById('sourcePathError').style.display = 'none';
-    return p;
+    return srcSub ? p + '/' + srcSub : p;
   }
   if (sourceProvider === 'other') {
     const n = document.getElementById('sourceOtherInput').value.trim();
@@ -4132,7 +4200,7 @@ function getDestPath() {
     const p = document.getElementById('destPathInput').value.trim();
     if (!p) { const errEl = document.getElementById('destPathError'); errEl.textContent = 'Please enter a folder path.'; errEl.style.display = 'block'; return null; }
     document.getElementById('destPathError').style.display = 'none';
-    return p;
+    return dstSub ? p + '/' + dstSub : p;
   }
   if (destProvider === 'other') {
     const n = document.getElementById('destOtherInput').value.trim();
@@ -4286,7 +4354,7 @@ def configure_remote_api(name, provider_type, username=None, password=None):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=RCLONE_CONFIG_TIMEOUT_SEC, env=run_env)
         if result.returncode == 0:
             # Validate the remote actually works
-            if provider_type in ("mega", "protondrive"):
+            if provider_type in ("mega", "protondrive", "s3"):
                 check = subprocess.run(["rclone", "lsd", f"{name}:"], capture_output=True, text=True, timeout=RCLONE_CHECK_TIMEOUT_SEC)
                 if check.returncode != 0:
                     # Remove the broken remote
@@ -4500,7 +4568,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send_json({"configured": remote_exists(name)})
         elif self.path == "/api/wizard/preview":
             body = self._read_body()
-            if body:
+            if body is not None:
                 source = body.get("source", "")
                 if not validate_rclone_input(source, "source"):
                     self._send_json({"ok": False, "msg": "Invalid source"}, 400)
@@ -4656,12 +4724,17 @@ def _start_transfer_from_wizard_locked(body):
 
 def start_dashboard(start_rclone=False):
     """Start the web dashboard and optionally the rclone process."""
-    global state, TRANSFER_ACTIVE, RCLONE_CMD, rclone_pid, PORT
+    global state, TRANSFER_ACTIVE, RCLONE_CMD, rclone_pid, PORT, LOG_FILE
 
     # Load RCLONE_CMD from state if not set (enables resume after restart)
     with state_lock:
         if not RCLONE_CMD and "rclone_cmd" in state:
             RCLONE_CMD = state["rclone_cmd"]
+            # Restore LOG_FILE from the saved command
+            for arg in RCLONE_CMD:
+                if arg.startswith("--log-file="):
+                    LOG_FILE = arg.split("=", 1)[1]
+                    break
 
     # Initial full log scan
     print()
