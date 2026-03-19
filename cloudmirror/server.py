@@ -7,6 +7,7 @@ import os
 import platform
 import shutil
 import subprocess
+from typing import Any, Dict, Optional
 
 from .transfer import TransferManager
 from .templates import render
@@ -33,11 +34,11 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
 
     # Class-level reference to the TransferManager instance.
     # Must be set before starting the server.
-    manager: TransferManager = None
+    manager: Optional[TransferManager] = None
 
     # ── Response helpers ────────────────────────────────────────────────
 
-    def _send_json(self, data: dict, status: int = 200):
+    def _send_json(self, data: Dict[str, Any], status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         # Only allow CORS from localhost to prevent cross-site request forgery
@@ -50,14 +51,14 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
-    def _send_html(self, html: str):
+    def _send_html(self, html: str) -> None:
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Set-Cookie", f"csrf_token={CSRF_TOKEN}; Path=/; SameSite=Strict")
         self.end_headers()
         self.wfile.write(html.encode())
 
-    def _serve_static(self, filename: str):
+    def _serve_static(self, filename: str) -> None:
         """Serve static CSS/JS files."""
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         # Prevent directory traversal by resolving the real path and ensuring
@@ -81,7 +82,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
 
     # ── Security checks ─────────────────────────────────────────────────
 
-    def _check_csrf(self):
+    def _check_csrf(self) -> bool:
         """Verify CSRF token from X-CSRF-Token header matches the server token."""
         token = self.headers.get("X-CSRF-Token")
         if not hmac.compare_digest(token or "", CSRF_TOKEN):
@@ -89,7 +90,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
             return False
         return True
 
-    def _check_host(self):
+    def _check_host(self) -> bool:
         """Reject requests where Host header is not localhost/127.0.0.1."""
         host = self.headers.get("Host", "")
         host_name = host.split(":")[0]
@@ -101,7 +102,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
             return False
         return True
 
-    def _read_body(self):
+    def _read_body(self) -> Optional[Dict[str, Any]]:
         """Read and parse the JSON request body with a size cap."""
         length = int(self.headers.get("Content-Length", 0))
         if length > MAX_REQUEST_BODY_BYTES:
@@ -115,7 +116,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
 
     # ── GET routes ───────────────────────────────────────────────────────
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         if not self._check_host():
             return
 
@@ -166,7 +167,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
 
     # ── POST routes ──────────────────────────────────────────────────────
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         if not self._check_host():
             return
         if not self._check_csrf():
@@ -268,7 +269,7 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
 
     # ── OPTIONS (CORS preflight) ─────────────────────────────────────────
 
-    def do_OPTIONS(self):
+    def do_OPTIONS(self) -> None:
         self.send_response(204)
         port = PORT
         origin = self.headers.get("Origin", "")
@@ -279,6 +280,6 @@ class CloudMirrorHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token")
         self.end_headers()
 
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: Any) -> None:
         """Suppress default HTTP access logging."""
         pass

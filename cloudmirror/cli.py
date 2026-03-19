@@ -5,13 +5,14 @@ import platform
 import webbrowser
 import threading
 import http.server
+from typing import Any, List
 
 from .server import CloudMirrorHandler, CSRF_TOKEN
 from .transfer import TransferManager
 from .utils import PORT
 
 
-def main():
+def main() -> None:
     """Main entry point -- wizard mode (no args) or CLI mode (source dest [flags])."""
     args = sys.argv[1:]
     manager = TransferManager()
@@ -42,7 +43,7 @@ def main():
         start_dashboard(manager, start_rclone=True)
 
 
-def start_dashboard(manager: TransferManager, start_rclone: bool = False):
+def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> None:
     """Start the web dashboard and optionally the rclone process."""
     import subprocess
 
@@ -125,7 +126,7 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False):
         _signal_handler(manager)
 
 
-def parse_cli_args(manager: TransferManager, args):
+def parse_cli_args(manager: TransferManager, args: List[str]) -> None:
     """Parse CLI arguments for advanced usage: cloudmirror source: dest: [flags]"""
     source = None
     dest = None
@@ -166,7 +167,7 @@ def parse_cli_args(manager: TransferManager, args):
         manager.rclone_cmd.append("--checkers=16")
 
 
-def _signal_handler(manager: TransferManager):
+def _signal_handler(manager: TransferManager) -> None:
     print("\n  CloudMirror stopped.")
     if manager.transfer_active:
         print("  (The file transfer continues in the background)")
