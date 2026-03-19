@@ -37,6 +37,7 @@ Data flow
 
 import os
 import json
+import logging
 import platform
 import shutil
 import signal
@@ -47,6 +48,8 @@ import time
 import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+logger = logging.getLogger("cloudhop.transfer")
 
 from .utils import (
     validate_rclone_input,
@@ -1310,6 +1313,7 @@ class TransferManager:
 
     def pause(self) -> Dict[str, Any]:
         """Stop the tracked rclone process (pause the transfer)."""
+        logger.info("Pause requested (PID %s)", self.rclone_pid)
         with self.transfer_lock:
             return self._pause_locked()
 
@@ -1341,6 +1345,7 @@ class TransferManager:
 
     def resume(self) -> Dict[str, Any]:
         """Restart the rclone process using the last-known command."""
+        logger.info("Resume requested")
         with self.transfer_lock:
             return self._resume_locked()
 

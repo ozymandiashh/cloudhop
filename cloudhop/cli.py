@@ -32,19 +32,39 @@ import platform
 import webbrowser
 import threading
 import http.server
+import logging
+import os
 from typing import Any, List
 
 from .server import CloudHopHandler
 from .transfer import TransferManager, ensure_rclone
 from .utils import PORT
 
+logger = logging.getLogger("cloudhop")
+
+
+def _setup_logging(cm_dir: str) -> None:
+    """Configure logging to file + console."""
+    log_file = os.path.join(cm_dir, "cloudhop-server.log")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.StreamHandler(sys.stderr),
+        ],
+    )
+    logger.info("CloudHop server starting (log: %s)", log_file)
+
 
 def main() -> None:
     """Main entry point -- wizard mode (no args) or CLI mode (source dest [flags])."""
     args = sys.argv[1:]
     manager = TransferManager()
+    _setup_logging(manager.cm_dir)
     CloudHopHandler.manager = manager
 
+    logger.info("Platform: %s, Python: %s", platform.system(), sys.version.split()[0])
     signal.signal(signal.SIGTERM, lambda signum, frame: _signal_handler(manager))
 
     # Ignore SIGHUP so CloudHop survives terminal close (Unix only)
@@ -158,13 +178,16 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
     except Exception:
         pass
 
+    logger.info("Server listening on http://localhost:%d", port)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         _signal_handler(manager)
     except Exception as e:
+        logger.exception("Server crashed: %s", e)
         print(f"\n  CloudHop server crashed: {e}")
         print("  The file transfer continues in the background.")
+        print(f"  Check logs: {os.path.join(manager.cm_dir, 'cloudhop-server.log')}")
         print("  Run 'cloudhop' again to reconnect to the dashboard.")
         print()
 

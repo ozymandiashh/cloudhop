@@ -35,10 +35,13 @@ import json
 import hmac
 import secrets
 import os
+import logging
 import platform
 import shutil
 import subprocess
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger("cloudhop.server")
 
 from .transfer import (
     TransferManager,
@@ -333,7 +336,12 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             if body is None:
                 self._send_json({"ok": False, "msg": "Invalid request"}, 400)
                 return
+            logger.info("Starting transfer: %s -> %s", body.get("source", "?"), body.get("dest", "?"))
             result = self.manager.start_transfer(body)
+            if result.get("ok"):
+                logger.info("Transfer started (PID %s)", result.get("pid"))
+            else:
+                logger.error("Transfer failed to start: %s", result.get("msg"))
             self._send_json(result)
         else:
             self.send_response(404)
@@ -363,4 +371,6 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         try:
             super().handle_one_request()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-            pass
+            logger.debug("Client disconnected mid-request")
+        except Exception as e:
+            logger.exception("Unhandled error in request handler: %s", e)
