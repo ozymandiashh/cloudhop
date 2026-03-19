@@ -69,9 +69,9 @@ Google Drive, OneDrive, Dropbox, iCloud Drive, MEGA, Amazon S3, Proton Drive, Lo
 
 [Security](SECURITY.md) | [Privacy](PRIVACY.md) | [Contributing](CONTRIBUTING.md) | [Changelog](CHANGELOG.md)
 
-## Built by
+## The story
 
-Built by an orthodontist who needed to move 500GB between cloud services and found no free, simple tool to do it.
+I needed to move 500GB of files from OneDrive to Google Drive. Every tool I found was either paid, required uploading my files to someone else's server, or needed a PhD in command-line tools. So I built CloudHop -- a simple, visual way to move files between any cloud service, running entirely on your own computer. No accounts, no subscriptions, no middleman.
 
 ## Donate
 
