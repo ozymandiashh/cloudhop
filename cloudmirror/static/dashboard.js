@@ -9,6 +9,7 @@ let failCount = 0;
 let speedHistory = [];
 let progressHistory = [];
 let filesHistory = [];
+let filesLocalHistory = []; // Built from global_files_done each refresh (backend files_history is cumulative-buggy)
 
 // Styled confirm modal (replaces native confirm())
 function showConfirmModal(message) {
@@ -56,6 +57,18 @@ function fmtSpeed(mbs) {
   if (mbs >= 1024) return (mbs / 1024).toFixed(2) + ' GiB/s';
   return mbs.toFixed(2) + ' MiB/s';
 }
+// Short versions for chart axis labels
+function fmtSpeedShort(v) {
+  if (v === 0) return '0';
+  if (v < 1) return (v * 1024).toFixed(0) + ' KB/s';
+  if (v >= 1024) return (v / 1024).toFixed(1) + ' GB/s';
+  return v.toFixed(1) + ' MB/s';
+}
+function fmtFilesShort(v) {
+  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000) return (v / 1000).toFixed(0) + 'K';
+  return Math.round(v).toString();
+}
 
 function fmtEta(eta) {
   if (!eta || eta === '--') return '--';
@@ -95,7 +108,7 @@ function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
     svg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="${emptyColor}" font-size="12" font-family="DM Sans, sans-serif">Collecting data...</text>`;
     return;
   }
-  const pad = { t: 12, b: 20, l: 52, r: 12 };
+  const pad = { t: 12, b: 20, l: 62, r: 12 };
   const cw = w - pad.l - pad.r;
   const ch = h - pad.t - pad.b;
 
@@ -156,26 +169,22 @@ function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
   });
   if (current.length > 0) segments.push(current);
 
+  // Merge all segments into one continuous line, connecting gaps smoothly.
+  // This avoids ugly vertical bars at segment boundaries in the area fill.
+  const allPts = [];
   segments.forEach(seg => {
-    if (seg.length < 2) return;
-    const pts = seg.map(p => {
+    seg.forEach(p => {
       const x = pad.l + (p.i / (data.length - 1)) * cw;
       const y = pad.t + ch - ((p.v - minVal) / (maxVal - minVal)) * ch;
-      return `${x},${y}`;
+      allPts.push({ x, y, i: p.i });
     });
-    const area = [...pts, `${pad.l + (seg[seg.length-1].i / (data.length-1)) * cw},${pad.t+ch}`, `${pad.l + (seg[0].i / (data.length-1)) * cw},${pad.t+ch}`];
-    html += `<polygon points="${area.join(' ')}" fill="url(#${gradId})"/>`;
-    html += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
 
-  for (let i = 0; i < segments.length - 1; i++) {
-    const last = segments[i][segments[i].length - 1];
-    const first = segments[i + 1][0];
-    const x1 = pad.l + (last.i / (data.length - 1)) * cw;
-    const y1 = pad.t + ch - ((last.v - minVal) / (maxVal - minVal)) * ch;
-    const x2 = pad.l + (first.i / (data.length - 1)) * cw;
-    const y2 = pad.t + ch - ((first.v - minVal) / (maxVal - minVal)) * ch;
-    html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="1" stroke-dasharray="4,4" opacity="0.3"/>`;
+  if (allPts.length >= 2) {
+    const ptStr = allPts.map(p => `${p.x},${p.y}`);
+    const areaStr = [...ptStr, `${allPts[allPts.length-1].x},${pad.t+ch}`, `${allPts[0].x},${pad.t+ch}`];
+    html += `<polygon points="${areaStr.join(' ')}" fill="url(#${gradId})"/>`;
+    html += `<polyline points="${ptStr.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
 
   const lastSeg = segments[segments.length - 1];
@@ -334,8 +343,10 @@ async function refresh() {
     if (d.pct_history && d.pct_history.length > 0) {
       progressHistory = d.pct_history;
     }
-    if (d.files_history && d.files_history.length > 0) {
-      filesHistory = d.files_history;
+    // Build files history locally from global_files_done (backend cumulative is buggy with multi-session)
+    if (d.global_files_done !== undefined && d.global_files_done > 0) {
+      filesLocalHistory.push(d.global_files_done);
+      if (filesLocalHistory.length > 200) filesLocalHistory = filesLocalHistory.slice(-200);
     }
 
     // Wall clock + uptime
@@ -508,9 +519,9 @@ async function refresh() {
     }
 
     // Charts
-    drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', v => fmtSpeed(v), true);
+    drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', fmtSpeedShort, true);
     drawAreaChart('progressChart', progressHistory, '#22d3ee', 'progGrad', v => v.toFixed(0) + '%', true, 100);
-    drawAreaChart('filesChart', filesHistory, '#818cf8', 'filesGrad', v => Math.round(v).toLocaleString(), true);
+    drawAreaChart('filesChart', filesLocalHistory, '#818cf8', 'filesGrad', fmtFilesShort, true);
 
     // Active transfers
     const list = document.getElementById('transfersList');
@@ -722,9 +733,9 @@ function toggleTheme() {
   // Clear chart cache so they redraw with new theme colors
   if (drawAreaChart._cache) drawAreaChart._cache = {};
   // Redraw charts with new colors
-  drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', v => fmtSpeed(v), true);
+  drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', fmtSpeedShort, true);
   drawAreaChart('progressChart', progressHistory, '#22d3ee', 'progGrad', v => v.toFixed(0) + '%', true, 100);
-  drawAreaChart('filesChart', filesHistory, '#818cf8', 'filesGrad', v => Math.round(v).toLocaleString(), true);
+  drawAreaChart('filesChart', filesLocalHistory, '#818cf8', 'filesGrad', fmtFilesShort, true);
 }
 // Load saved theme
 (function() {
@@ -852,7 +863,7 @@ refresh();
 let refreshInterval = setInterval(refresh, 5000);
 window.addEventListener('resize', () => {
   if (drawAreaChart._cache) drawAreaChart._cache = {};
-  drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', v => fmtSpeed(v), true);
+  drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', fmtSpeedShort, true);
   drawAreaChart('progressChart', progressHistory, '#22d3ee', 'progGrad', v => v.toFixed(0) + '%', true, 100);
-  drawAreaChart('filesChart', filesHistory, '#818cf8', 'filesGrad', v => Math.round(v).toLocaleString(), true);
+  drawAreaChart('filesChart', filesLocalHistory, '#818cf8', 'filesGrad', fmtFilesShort, true);
 });
