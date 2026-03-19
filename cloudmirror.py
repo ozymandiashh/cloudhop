@@ -1207,7 +1207,6 @@ HTML = r"""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 /* ========== CSS VARIABLES ========== */
 :root {
   --primary: #6366f1;
@@ -1217,71 +1216,70 @@ HTML = r"""<!DOCTYPE html>
   --radius: 16px;
   --radius-sm: 10px;
   --section-gap: 28px;
+  --card-border: rgba(255,255,255,0.05);
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
-  --bg: #0c0c0f;
+  --bg-base: #0b0d13;
   --bg-surface: #12141c;
-  --card: #16161a;
+  --bg-card: #181a24;
+  --bg-card-hover: #1e2030;
+  --text-primary: #f0f0f5;
+  --text-secondary: #8b8fa3;
+  --text-tertiary: #5a5e73;
+  --border: rgba(255,255,255,0.05);
+  --border-hover: rgba(255,255,255,0.1);
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --noise-opacity: 0.03;
+  --chart-grid: rgba(255,255,255,0.05);
+  --row-alt: rgba(255,255,255,0.02);
+  /* Legacy aliases for JS compatibility */
+  --bg: #0b0d13;
+  --card: #181a24;
   --card-hover: #1e2030;
-  --card-border: rgba(255,255,255,0.06);
   --text: #f0f0f5;
   --text-dim: #8b8fa3;
   --text-muted: #5a5e73;
+  --chart-text: #5a5e73;
   --blue: var(--primary);
   --blue-light: #818cf8;
   --green: #22c55e;
   --orange: #f59e0b;
   --red: #ef4444;
-  --purple: var(--primary);
-  --cyan: var(--secondary);
-  --pink: var(--primary);
-  --yellow: var(--secondary);
-  --chart-grid: rgba(255,255,255,0.05);
-  --chart-text: #5a5e73;
   --mini-bar-bg: #12141c;
-  --big-track-bg: #12141c;
-  --big-track-border: rgba(255,255,255,0.05);
-  --prev-fill-start: rgba(99,102,241,0.3);
-  --prev-fill-end: var(--primary);
-  --shimmer: rgba(255,255,255,0.1);
-  --shadow: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
-  --noise-opacity: 0.05;
-  --row-alt: rgba(255,255,255,0.02);
 }
 
 [data-theme="light"] {
-  --bg: #f3f4f8;
+  --bg-base: #f3f4f8;
   --bg-surface: #eaebf0;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8f8fb;
+  --text-primary: #1a1c2b;
+  --text-secondary: #6b6f85;
+  --text-tertiary: #9b9fb3;
+  --border: rgba(0,0,0,0.06);
+  --border-hover: rgba(0,0,0,0.12);
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+  --noise-opacity: 0.015;
+  --chart-grid: rgba(0,0,0,0.06);
+  --row-alt: rgba(0,0,0,0.02);
+  /* Legacy aliases for JS compatibility */
+  --bg: #f3f4f8;
   --card: #ffffff;
   --card-hover: #f8f8fb;
-  --card-border: rgba(0,0,0,0.06);
   --text: #1a1c2b;
   --text-dim: #6b6f85;
   --text-muted: #9b9fb3;
+  --chart-text: #9b9fb3;
   --blue: var(--primary);
   --blue-light: #818cf8;
   --green: #16a34a;
   --orange: #d97706;
   --red: #dc2626;
-  --purple: var(--primary);
-  --cyan: var(--secondary);
-  --pink: var(--primary);
-  --yellow: var(--secondary);
-  --chart-grid: rgba(0,0,0,0.06);
-  --chart-text: #9b9fb3;
   --mini-bar-bg: #eaebf0;
-  --big-track-bg: #eaebf0;
-  --big-track-border: rgba(0,0,0,0.06);
-  --prev-fill-start: rgba(99,102,241,0.2);
-  --prev-fill-end: var(--primary);
-  --shimmer: rgba(255,255,255,0.4);
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
-  --noise-opacity: 0.015;
-  --row-alt: rgba(0,0,0,0.02);
 }
 
 /* ========== RESET & BASE ========== */
@@ -1290,12 +1288,10 @@ HTML = r"""<!DOCTYPE html>
 
 body {
   font-family: 'DM Sans', -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg-base);
+  color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
-  padding: 0;
-  overflow-x: hidden;
   transition: background var(--transition), color var(--transition);
   -webkit-font-smoothing: antialiased;
 }
@@ -1314,249 +1310,458 @@ body::before {
 
 .mono { font-family: 'JetBrains Mono', monospace; }
 
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px 60px; }
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover { border-color: var(--border-hover); }
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
 
 /* ========== HEADER ========== */
 .header {
-  position: sticky; top: 0; z-index: 100;
-  background: var(--bg-surface, var(--bg));
-  border-bottom: 1px solid var(--card-border);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 0; padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transition: background var(--transition), border-color var(--transition);
 }
-.header-left { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.header h1 {
-  font-weight: 700; font-size: 15px; color: var(--text);
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo svg { width: 18px; height: 18px; fill: white; }
+.logo-text {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
-.status-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px; border-radius: 20px; font-size: 0.7rem;
-  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
-.status-badge.active { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
-.status-badge.paused { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--orange); }
-.status-badge.stopped { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
+.transfer-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  flex-shrink: 0;
+}
+.status-dot.paused { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+.status-dot.error { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+.status-dot.complete { background: var(--secondary); box-shadow: 0 0 8px rgba(var(--secondary-rgb), 0.5); }
+.status-dot.active { animation: pulse 2s infinite; }
+.wall-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
 
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-.status-badge.active .status-dot { animation: pulse 2s infinite; }
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-  50% { opacity: 0.6; box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 16px rgba(34,197,94,0); }
 }
 @keyframes ctaGlow {
   0%, 100% { box-shadow: 0 4px 14px rgba(var(--primary-rgb),0.3); }
   50% { box-shadow: 0 4px 24px rgba(var(--primary-rgb),0.6), 0 0 40px rgba(var(--primary-rgb),0.15); }
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btn-icon {
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+.btn-icon:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.btn-icon svg { width: 16px; height: 16px; }
+
+/* Session + status badges (legacy, used by JS) */
+.status-badge {
+  display: none;
+}
 .session-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  padding: 6px 14px;
-  border-radius: 8px;
-  background: rgba(99,102,241,0.06);
-  border: 1px solid rgba(99,102,241,0.12);
-  color: rgba(99,102,241,0.7);
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
-
-.header-right {
-  font-size: 13px; color: var(--text-dim); text-align: right; flex-shrink: 0;
-}
-
-.theme-toggle {
-  background: var(--card); border: 1px solid var(--card-border); border-radius: 8px;
-  padding: 6px 10px; cursor: pointer; font-size: 1rem; line-height: 1;
-  color: var(--text-dim); transition: all var(--transition);
-  min-width: 34px; min-height: 34px;
-  display: flex; align-items: center; justify-content: center;
-}
-.theme-toggle:hover { border-color: rgba(var(--primary-rgb),0.3); color: var(--text); }
-.header-right div { margin-bottom: 2px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 
 /* ========== BIG PROGRESS ========== */
-.big-progress {
-  margin-top: var(--section-gap); margin-bottom: var(--section-gap);
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 40px 36px 36px;
-  box-shadow: var(--shadow);
-  transition: background var(--transition), border-color var(--transition);
+.progress-section {
+  padding: 40px 36px 36px;
+  margin-top: var(--section-gap);
+  text-align: center;
 }
-.big-progress:hover { border-color: rgba(var(--primary-rgb),0.15); }
-.big-progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
-.big-pct {
+.progress-percentage {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 72px; font-weight: 700; letter-spacing: -0.04em; line-height: 1;
+  font-size: 72px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
   background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.big-pct .unit {
-  font-size: 2rem;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+.progress-bar-container {
+  margin: 24px auto 20px;
+  max-width: 600px;
+  position: relative;
 }
-.big-detail { font-size: 14px; color: var(--text-dim); text-align: right; }
-.big-detail span { color: var(--text); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
-.big-detail .session-note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-
-.big-track {
-  height: 8px; background: var(--bg-surface, var(--mini-bar-bg)); border-radius: 4px;
-  overflow: visible; position: relative; border: none;
+.progress-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  overflow: hidden;
+  position: relative;
 }
-.big-fill {
-  height: 100%; border-radius: 4px; position: relative; min-width: 4px;
-  transition: width 2s ease;
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 2s ease;
+  position: relative;
+  min-width: 4px;
 }
-.big-fill::after {
-  content: ''; position: absolute; inset: 0; border-radius: 4px;
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
   background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.3));
   animation: shimmer 2s infinite;
 }
-/* Glow under progress bar */
-.big-track::after {
-  content: ''; position: absolute; bottom: -6px; left: 0; right: 0;
-  height: 16px; border-radius: 8px;
-  background: linear-gradient(90deg, rgba(var(--primary-rgb),0.5), rgba(var(--secondary-rgb),0.5));
-  filter: blur(12px); pointer-events: none;
-}
-.prev-fill {
-  position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px 0 0 4px;
-  background: linear-gradient(90deg, rgba(var(--primary-rgb),0.3), rgba(var(--primary-rgb),0.5));
-  opacity: 0.6; pointer-events: none; transition: width 2s ease;
-}
-
 @keyframes shimmer {
-  0% { opacity: 0.5; }
+  0% { opacity: 0.3; }
   50% { opacity: 0.8; }
-  100% { opacity: 0.5; }
+  100% { opacity: 0.3; }
 }
-
-.big-bars { display: flex; gap: 16px; margin-top: 20px; }
+.progress-glow {
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(var(--primary-rgb),0.3), rgba(var(--secondary-rgb),0.3));
+  filter: blur(12px);
+  transition: width 2s ease;
+  pointer-events: none;
+}
+.progress-prev {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(90deg, rgba(var(--primary-rgb),0.3), rgba(var(--primary-rgb),0.5));
+  opacity: 0.6;
+  pointer-events: none;
+  transition: width 2s ease;
+}
+.progress-meta {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.progress-meta span { display: flex; align-items: center; gap: 6px; }
+.progress-meta .val { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+.progress-sub-bars {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
 .sub-bar-wrap { flex: 1; }
-.sub-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
-.sub-bar-label span { color: var(--text); font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-.sub-track { height: 6px; background: var(--bg-surface, var(--mini-bar-bg)); border-radius: 3px; overflow: hidden; }
+.sub-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.sub-bar-label span { color: var(--text-primary); font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.sub-track { height: 6px; background: var(--bg-surface); border-radius: 3px; overflow: hidden; }
 .sub-fill { height: 100%; border-radius: 3px; transition: width 2s ease; }
 .sub-fill.files { background: linear-gradient(90deg, var(--primary), rgba(var(--primary-rgb),0.7)); }
 .sub-fill.checks { background: linear-gradient(90deg, var(--secondary), rgba(var(--secondary-rgb),0.7)); }
+.session-note { font-size: 12px; color: var(--text-tertiary); margin-top: 8px; }
+.finish-time { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+/* ========== CONTROL BAR ========== */
+#controlBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+.ctrl-btn {
+  padding: 7px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ctrl-btn:hover { background: var(--bg-card-hover); border-color: var(--border-hover); color: var(--text-primary); }
+.ctrl-btn:active { transform: scale(0.97); }
+.ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.ctrl-btn.pause { color: #f87171; }
+.ctrl-btn.pause:hover { color: #fca5a5; }
+.ctrl-btn.resume { color: #34d399; }
+.ctrl-btn.resume:hover { color: #6ee7b7; }
+.ctrl-btn .spinner {
+  display: inline-block; width: 10px; height: 10px; border: 2px solid currentColor;
+  border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite;
+  margin-right: 4px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ========== STATS GRID ========== */
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: var(--section-gap); }
-@media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-
-.stat-card {
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 20px; text-align: center;
-  transition: all var(--transition); box-shadow: var(--shadow);
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: var(--section-gap);
 }
-.stat-card:hover { border-color: rgba(var(--primary-rgb),0.15); }
+.stat-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stat-icon.primary { background: rgba(var(--primary-rgb), 0.12); color: var(--primary); }
+.stat-icon.secondary { background: rgba(var(--secondary-rgb), 0.12); color: var(--secondary); }
+.stat-icon svg { width: 16px; height: 16px; }
 .stat-label {
-  font-size: 12px; font-weight: 500; text-transform: uppercase;
-  letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .stat-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 22px; font-weight: 600; color: #fff;
-  line-height: 1.2; letter-spacing: -0.02em;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
-.stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-.stat-icon {
-  width: 28px; height: 28px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 8px;
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
-.stat-icon svg { width: 14px; height: 14px; }
-/* Stat card color classes: indigo + cyan only */
-.stat-value.green, .stat-value.blue, .stat-value.purple, .stat-value.cyan { color: var(--text) !important; }
-.stat-value.orange, .stat-value.yellow, .stat-value.pink { color: var(--text) !important; }
+/* Legacy color classes used by JS */
+.stat-value.green, .stat-value.blue, .stat-value.purple, .stat-value.cyan { color: var(--text-primary) !important; }
+.stat-value.orange, .stat-value.yellow, .stat-value.pink { color: var(--text-primary) !important; }
 .stat-value.red { color: var(--red) !important; }
 
 /* ========== SESSION TIMELINE ========== */
 .timeline-section {
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 24px; margin-bottom: var(--section-gap);
-  box-shadow: var(--shadow); transition: all var(--transition);
+  margin-top: var(--section-gap);
+  padding: 24px;
 }
-.timeline-section:hover { border-color: rgba(var(--primary-rgb),0.15); }
-.timeline-section h3 {
-  font-size: 13px; font-weight: 600; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;
+.timeline-list { display: flex; flex-direction: column; gap: 2px; }
+.timeline-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  transition: background var(--transition);
 }
+.timeline-item:hover { background: var(--row-alt); }
+.tl-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.tl-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.tl-duration {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  min-width: 60px;
+  text-align: right;
+}
+.tl-label { color: var(--text-secondary); }
+.tl-pause-tag {
+  color: #f59e0b;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.timeline-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'DM Sans', sans-serif;
+  background: none;
+  width: 100%;
+}
+.timeline-expand:hover { color: var(--text-secondary); border-color: var(--border-hover); background: var(--row-alt); }
 
-.timeline { position: relative; padding-left: 24px; }
-.timeline::before {
-  content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px;
-  width: 2px; background: var(--card-border);
-}
-
+/* Legacy timeline classes (used by JS) */
+.timeline { position: relative; }
 .tl-item { position: relative; padding-bottom: 16px; }
 .tl-item:last-child { padding-bottom: 0; }
-.tl-dot {
-  position: absolute; left: -20px; top: 3px; width: 10px; height: 10px;
-  border-radius: 50%; border: 2px solid; background: var(--bg);
-}
-.tl-dot.active { border-color: var(--green); background: var(--green); }
-.tl-dot.done { border-color: var(--primary); }
-.tl-dot.pause { border-color: var(--orange); }
-
+.tl-dot { display: none; }
 .tl-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-.tl-title { font-size: 13px; font-weight: 600; color: var(--text); }
-.tl-time { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim); }
-.tl-stats { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
-.tl-stats span { color: var(--text); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
-
-.tl-pause {
-  position: relative; padding-bottom: 16px; padding-left: 0;
-  margin-left: -24px; padding-left: 24px;
-}
+.tl-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.tl-stats { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+.tl-stats span { color: var(--text-primary); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+.tl-pause { position: relative; padding-bottom: 16px; }
 .tl-pause-inner {
   background: rgba(245,158,11,0.05); border: 1px dashed rgba(245,158,11,0.2);
   border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px; color: var(--orange);
 }
 
 /* ========== CHARTS ========== */
-.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: var(--section-gap); }
-@media (max-width: 700px) { .charts-row { grid-template-columns: 1fr; } }
-.chart-card {
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
-  transition: all var(--transition);
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: var(--section-gap);
 }
-.chart-card:hover { border-color: rgba(var(--primary-rgb),0.15); }
-.chart-card h3 {
-  font-size: 14px; font-weight: 600; color: var(--text);
+.chart-card {
+  padding: 24px;
+}
+.chart-card-full {
+  margin-top: var(--section-gap);
+  padding: 24px;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
 }
-.chart-container { height: 200px; position: relative; overflow: hidden; }
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.chart-container {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
 .chart-svg { width: 100%; height: 100%; }
 
-.chart-full {
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 24px; margin-bottom: var(--section-gap);
-  box-shadow: var(--shadow); transition: all var(--transition);
-}
-.chart-full:hover { border-color: rgba(var(--primary-rgb),0.15); }
-.chart-full h3 {
-  font-size: 14px; font-weight: 600; color: var(--text);
-  margin-bottom: 20px;
-}
-.chart-full .chart-container { height: 200px; }
-
 /* ========== ACTIVE TRANSFERS ========== */
-.transfers-section {
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 24px; margin-bottom: var(--section-gap);
-  box-shadow: var(--shadow); transition: all var(--transition);
+.active-section {
+  margin-top: var(--section-gap);
+  padding: 24px;
 }
-.transfers-section:hover { border-color: rgba(var(--primary-rgb),0.15); }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .section-header h3 {
-  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  font-size: 13px; font-weight: 600; color: var(--text-tertiary);
   text-transform: uppercase; letter-spacing: 0.08em;
 }
 .transfer-count {
@@ -1564,7 +1769,52 @@ body::before {
   background: rgba(var(--primary-rgb),0.1); padding: 2px 10px; border-radius: 10px;
   font-family: 'JetBrains Mono', monospace;
 }
+.file-list { display: flex; flex-direction: column; }
+.file-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 80px 140px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.file-row:nth-child(odd) { background: var(--row-alt); }
+.file-row:hover { background: rgba(var(--primary-rgb),0.04); }
+.file-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-size {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+.file-speed {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--secondary);
+  text-align: right;
+}
+.file-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+.file-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 2s ease;
+}
 
+/* Legacy transfer-item classes (used by JS) */
 .transfer-item {
   display: grid; grid-template-columns: 1fr 140px 50px 90px 80px;
   align-items: center; gap: 12px; padding: 12px 12px;
@@ -1575,9 +1825,9 @@ body::before {
 .transfer-item:hover { background: rgba(var(--primary-rgb),0.04); }
 .transfer-item .fname {
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.mini-bar { height: 4px; background: var(--bg-surface, var(--mini-bar-bg)); border-radius: 2px; overflow: hidden; }
+.mini-bar { height: 4px; background: var(--bg-surface); border-radius: 2px; overflow: hidden; }
 .mini-fill {
   height: 100%; border-radius: 2px; transition: width 2s ease;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
@@ -1592,51 +1842,96 @@ body::before {
 }
 .transfer-item .teta {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; color: var(--text-dim); text-align: right;
+  font-size: 12px; color: var(--text-secondary); text-align: right;
 }
 
-/* ========== RECENT + TYPES ========== */
-.recent-section { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: var(--section-gap); }
-@media (max-width: 700px) {
-  .recent-section { grid-template-columns: 1fr; }
-  .transfer-item { grid-template-columns: 1fr 80px 40px 60px; gap: 6px; padding: 8px 6px; }
-  .transfer-item .teta { display: none; }
-  .transfer-item .fname { font-size: 11px; }
-  .header { flex-direction: column; gap: 10px; align-items: flex-start; padding: 12px 16px; }
-  .header-left { flex-wrap: wrap; gap: 8px; }
-  .header-right { text-align: left; }
-  .big-pct { font-size: 48px; }
-  .big-bars { flex-direction: column; }
-  .big-progress { padding: 24px; }
-  .stat-value { font-size: 1.1rem; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .charts-row { grid-template-columns: 1fr; }
+/* ========== BOTTOM ROW ========== */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: var(--section-gap);
 }
-.recent-card {
-  background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 24px; overflow: hidden; min-width: 0;
-  box-shadow: var(--shadow); transition: all var(--transition);
+.completed-section { padding: 24px; }
+.completed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
 }
-.recent-card:hover { border-color: rgba(var(--primary-rgb),0.15); }
-.recent-card h3 {
-  font-size: 13px; font-weight: 600; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;
+.completed-item:nth-child(odd) { background: var(--row-alt); }
+.completed-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
 }
+.completed-size {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* Legacy recent file classes (used by JS) */
 .recent-file {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 12px; border-bottom: none; border-radius: var(--radius-sm);
+  padding: 8px 12px; border-radius: var(--radius-sm);
 }
 .recent-file:nth-child(odd) { background: var(--row-alt); }
 .recent-file .rf-name {
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 12px;
 }
 .recent-file .rf-time {
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-tertiary); white-space: nowrap;
 }
 .recent-file .rf-ext { font-size: 11px; padding: 1px 6px; border-radius: 4px; margin-left: 8px; white-space: nowrap; }
 
-/* File types as horizontal bars */
+.filetypes-section { padding: 24px; }
+.filetype-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.filetype-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 50px;
+  flex-shrink: 0;
+}
+.filetype-bar-track {
+  flex: 1;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  overflow: hidden;
+  position: relative;
+}
+.filetype-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.filetype-bar-fill.primary { background: rgba(var(--primary-rgb), 0.6); }
+.filetype-bar-fill.secondary { background: rgba(var(--secondary-rgb), 0.5); }
+.filetype-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Legacy file type classes (used by JS) */
 .types-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .type-badge {
   display: flex; align-items: center; gap: 12px; padding: 0;
@@ -1644,11 +1939,11 @@ body::before {
 }
 .type-badge .type-name {
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  color: var(--text-dim); width: 50px; flex-shrink: 0;
+  color: var(--text-secondary); width: 50px; flex-shrink: 0;
 }
 .type-badge .type-count {
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  color: var(--text-muted); width: 50px; text-align: right; flex-shrink: 0;
+  color: var(--text-tertiary); width: 50px; text-align: right; flex-shrink: 0;
 }
 .type-bar {
   flex: 1; height: 18px; border-radius: 4px;
@@ -1658,7 +1953,7 @@ body::before {
 /* ========== ERROR ========== */
 .error-section {
   background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15);
-  border-radius: var(--radius); padding: 16px 24px; margin-bottom: var(--section-gap); display: none;
+  border-radius: var(--radius); padding: 16px 24px; margin-top: var(--section-gap); display: none;
 }
 .error-section.show { display: block; }
 .error-section h3 {
@@ -1670,73 +1965,31 @@ body::before {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* ========== DAILY CHART ========== */
+.daily-chart-section {
+  margin-top: var(--section-gap);
+  padding: 24px;
+  display: none;
+}
+
 /* ========== FOOTER ========== */
 .footer {
-  text-align: center; font-size: 12px; color: var(--text-muted);
-  padding: 20px 0; border-top: 1px solid var(--card-border);
   margin-top: var(--section-gap);
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border);
 }
 .footer a { color: var(--primary); text-decoration: none; }
 .footer a:hover { text-decoration: underline; }
 
-/* ========== CONTROL BUTTONS ========== */
-#controlBar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
-}
-.ctrl-btn {
-  padding: 8px 20px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: rgba(255,255,255,0.03);
-  color: var(--text-secondary, #8b8fa3);
-  letter-spacing: 0.02em;
-  min-height: 38px;
-}
-.ctrl-btn:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.15);
-  color: var(--text, #ececf1);
-}
-.ctrl-btn:active { transform: scale(0.97); }
-.ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.ctrl-btn.pause {
-  background: rgba(239,68,68,0.06);
-  border-color: rgba(239,68,68,0.15);
-  color: #f87171;
-}
-.ctrl-btn.pause:hover { background: rgba(239,68,68,0.12); }
-
-.ctrl-btn.resume {
-  background: rgba(52,211,153,0.06);
-  border-color: rgba(52,211,153,0.15);
-  color: #34d399;
-}
-.ctrl-btn.resume:hover { background: rgba(52,211,153,0.12); }
-
-.ctrl-btn .spinner {
-  display: inline-block; width: 10px; height: 10px; border: 2px solid currentColor;
-  border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite;
-  margin-right: 6px; vertical-align: middle;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
 /* ========== TOAST ========== */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  background: var(--card); border: 1px solid var(--card-border);
+  background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 10px 20px; font-size: 13px;
-  color: var(--text); z-index: 200; opacity: 0; transition: opacity 0.3s;
+  color: var(--text-primary); z-index: 200; opacity: 0; transition: opacity 0.3s;
   pointer-events: none; box-shadow: var(--shadow-lg);
 }
 .toast.show { opacity: 1; }
@@ -1744,68 +1997,95 @@ body::before {
 /* ========== SCROLLBAR ========== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(var(--primary-rgb),0.2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row, .bottom-row { grid-template-columns: 1fr; }
+  .header-center { position: static; transform: none; }
+  .header-inner { flex-wrap: wrap; }
+  .progress-percentage { font-size: 48px; }
+  .file-row { grid-template-columns: 1fr 80px 120px; }
+  .file-speed { display: none; }
+  .transfer-item { grid-template-columns: 1fr 80px 40px 60px; gap: 6px; padding: 8px 6px; }
+  .transfer-item .teta { display: none; }
+  .progress-sub-bars { flex-direction: column; }
+}
 </style>
 </head>
 <body>
+
+<!-- ========== HEADER ========== -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      </div>
+      <span class="logo-text" id="transferTitle">CloudMirror</span>
+    </div>
+    <div class="header-center">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="transfer-name" id="statusText">Loading...</span>
+      <span class="wall-time mono" id="wallClock">--</span>
+    </div>
+    <div class="header-right">
+      <span class="session-badge" id="sessionBadge">Session 1</span>
+      <button class="btn-icon ctrl-btn pause" id="btnPause" onclick="doAction('pause')" title="Pause transfer" aria-label="Pause transfer">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <button class="btn-icon ctrl-btn resume" id="btnResume" onclick="doAction('resume')" style="display:none" title="Resume transfer" aria-label="Resume transfer">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      </button>
+      <button class="btn-icon" id="btnCancel" onclick="cancelTransfer()" title="Cancel transfer" aria-label="Cancel transfer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <a href="/wizard" class="btn-icon" id="btnNewTransfer" title="New Transfer" aria-label="New Transfer" style="text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </a>
+      <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+        <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Hidden legacy elements for JS compatibility -->
+<div class="status-badge" id="statusBadge" style="display:none"><div class="status-dot"></div><span></span></div>
+<div id="controlBar" style="display:none"></div>
+
 <div class="container">
 
-<div class="header">
-  <div class="header-left">
-    <div style="display:flex;align-items:center;gap:8px;">
-    <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
-        <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="url(#hLogoGrad)"/>
-        <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <defs><linearGradient id="hLogoGrad" x1="3" y1="20" x2="56" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#1d4ed8"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs>
-    </svg>
-    <h1 id="transferTitle">CloudMirror</h1>
-</div>
-    <div class="status-badge paused" id="statusBadge">
-      <div class="status-dot" style="animation:none;background:var(--text-dim)"></div>
-      <span id="statusText">Loading...</span>
-    </div>
-  </div>
-  <div class="header-right" id="headerRight" style="display:flex;align-items:center;gap:12px;">
-    <div id="headerTimers" style="font-size:11px;">
-      <div>Wall time: <span id="wallClock" style="color:var(--text)">--</span></div>
-      <div>Uptime: <span id="uptimePct" style="color:var(--green)">--</span></div>
-      <div>Updated: <span id="lastUpdate">--</span></div>
-    </div>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">&#9790;</button>
-  </div>
-</div>
-
-<!-- Empty state overlay -->
+<!-- ========== EMPTY STATE ========== -->
 <div id="emptyState" style="display:none;text-align:center;padding:80px 20px;">
   <div style="margin-bottom:16px;opacity:0.5;">
-    <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
-        <path d="M48 28c0-8.8-7.2-16-16-16-6.5 0-12.1 3.9-14.6 9.5C16.5 21.2 15.8 21 15 21c-3.3 0-6 2.7-6 6 0 .4 0 .8.1 1.1C5.5 29.5 3 33.2 3 37.5 3 43 7.5 47.5 13 47.5h35c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.7 0-1 .1.6-1.1 1-2.3 1-3.6z" fill="url(#emptyCloudGrad)"/>
-        <path d="M22 36h20M38 31l5 5-5 5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <defs><linearGradient id="emptyCloudGrad" x1="3" y1="20" x2="56" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#1d4ed8"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs>
-    </svg>
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="url(#emptyGrad)"/><defs><linearGradient id="emptyGrad" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs></svg>
   </div>
-  <div style="font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:8px;">No active transfer</div>
-  <div style="font-size:0.9rem;color:var(--text-dim);margin-bottom:24px;">Set up a new transfer to start copying files between cloud services.</div>
-  <a href="/wizard" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:1rem;font-weight:600;background:linear-gradient(135deg,#1d4ed8,var(--blue));color:#fff;text-decoration:none;animation:ctaGlow 2s ease-in-out infinite;">Start New Transfer</a>
+  <div style="font-size:1.3rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">No active transfer</div>
+  <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:24px;">Set up a new transfer to start copying files between cloud services.</div>
+  <a href="/wizard" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:1rem;font-weight:600;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;text-decoration:none;animation:ctaGlow 2s ease-in-out infinite;">Start New Transfer</a>
 </div>
 
-<!-- Big progress -->
-<div class="big-progress" id="dashboardContent">
-  <div class="big-progress-header">
-    <div class="big-pct"><span id="bigPct">0</span><span class="unit">%</span></div>
-    <div class="big-detail">
-      <div><span id="bpTransferred">--</span> / <span id="bpTotal">--</span></div>
-      <div style="margin-top:4px;">ETA: <span id="bpEta" style="color:var(--orange);font-weight:600;">--</span></div>
-      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px;" id="finishTime"></div>
-      <div class="session-note" id="sessionNote"></div>
+<!-- ========== BIG PROGRESS ========== -->
+<div class="progress-section card" id="dashboardContent">
+  <div class="progress-percentage mono"><span id="bigPct">0</span>%</div>
+  <div class="progress-bar-container">
+    <div class="progress-bar-track">
+      <div class="progress-prev" id="prevBar" style="width:0%"></div>
+      <div class="progress-bar-fill" id="bigBar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
+    <div class="progress-glow" id="progressGlow" style="width:0%"></div>
   </div>
-  <div class="big-track">
-    <div class="prev-fill" id="prevBar" style="width:0%"></div>
-    <div class="big-fill" id="bigBar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+  <div class="progress-meta">
+    <span>Transferred <span class="val" id="bpTransferred">--</span> / <span class="val" id="bpTotal">--</span></span>
+    <span>ETA <span class="val" id="bpEta">--</span></span>
   </div>
-  <div class="big-bars">
+  <div class="finish-time" id="finishTime"></div>
+  <div class="session-note" id="sessionNote"></div>
+  <div class="progress-sub-bars">
     <div class="sub-bar-wrap">
       <div class="sub-bar-label">
         <span>Files</span>
@@ -1823,120 +2103,136 @@ body::before {
   </div>
 </div>
 
-<!-- Floating control bar -->
-<div id="controlBar">
-  <div class="session-badge" id="sessionBadge">Session 1</div>
-  <button class="ctrl-btn pause" id="btnPause" onclick="doAction('pause')">Pause</button>
-  <button class="ctrl-btn resume" id="btnResume" onclick="doAction('resume')" style="display:none">Resume</button>
-  <button class="ctrl-btn" id="btnCancel" onclick="cancelTransfer()">Cancel</button>
-  <a href="/wizard" class="ctrl-btn" id="btnNewTransfer" style="text-decoration:none;">New Transfer</a>
-</div>
-
-<!-- Stats -->
+<!-- ========== STATS GRID ========== -->
 <div class="stats-grid" id="statsGrid">
-  <div class="stat-card">
-    <div class="stat-icon" style="color: var(--primary); background: rgba(99,102,241,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1L4 9h4l-1 6 5-8H8l1-6z"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <span class="stat-label">Current Speed</span>
     </div>
-    <div class="stat-label">Current Speed</div>
     <div class="stat-value green" id="speed">--</div>
     <div class="stat-sub" id="speedSub">--</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: var(--primary); background: rgba(99,102,241,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 5 7 8 9 14 3"/><polyline points="10 3 14 3 14 7"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+      </div>
+      <span class="stat-label">Avg Speed</span>
     </div>
-    <div class="stat-label">Avg Speed (overall)</div>
     <div class="stat-value blue" id="avgSpeed">--</div>
     <div class="stat-sub" id="avgSpeedSub">across all sessions</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: var(--primary); background: rgba(99,102,241,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14l4-6 3 3 5-9"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <span class="stat-label">Peak Speed</span>
     </div>
-    <div class="stat-label">Peak Speed</div>
     <div class="stat-value purple" id="peakSpeed">--</div>
     <div class="stat-sub" id="peakTime">--</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: var(--secondary); background: rgba(34,211,238,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><polyline points="8 4 8 8 11 10"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <span class="stat-label">Active Time</span>
     </div>
-    <div class="stat-label">Total Active Time</div>
     <div class="stat-value cyan" id="elapsed">--</div>
     <div class="stat-sub" id="elapsedSub">this session: --</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: var(--secondary); background: rgba(34,211,238,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1" width="10" height="13" rx="1"/><line x1="6" y1="4" x2="10" y2="4"/><line x1="6" y1="7" x2="10" y2="7"/><line x1="6" y1="10" x2="8" y2="10"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      </div>
+      <span class="stat-label">Files/min</span>
     </div>
-    <div class="stat-label">Files/min</div>
     <div class="stat-value orange" id="filesRate">--</div>
     <div class="stat-sub" id="filesRateSub">--</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: var(--secondary); background: rgba(34,211,238,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6 8l2 2 4-4"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <span class="stat-label">Files Copied</span>
     </div>
-    <div class="stat-label">Total Files Copied</div>
     <div class="stat-value yellow" id="totalCopied">--</div>
     <div class="stat-sub" id="totalCopiedSub">all sessions</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: #fb923c; background: rgba(251,146,60,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><line x1="6" y1="6" x2="6" y2="10"/><line x1="10" y1="6" x2="10" y2="10"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <span class="stat-label">Total Downtime</span>
     </div>
-    <div class="stat-label">Total Downtime</div>
     <div class="stat-value pink" id="downtime">--</div>
     <div class="stat-sub" id="downtimeSub">--</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="color: #f87171; background: rgba(248,113,113,0.1);">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1L1 14h14L8 1z"/><line x1="8" y1="6" x2="8" y2="9"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>
+  <div class="stat-card card">
+    <div class="stat-card-header">
+      <div class="stat-icon secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <span class="stat-label">Errors</span>
     </div>
-    <div class="stat-label">Errors</div>
     <div class="stat-value" id="errors" style="color:var(--green)">0</div>
     <div class="stat-sub" id="errorSub">none</div>
   </div>
 </div>
 
-<!-- Session Timeline -->
-<div class="timeline-section" id="timelineSection" style="display:none">
-  <h3 style="cursor:pointer;user-select:none;" onclick="toggleTimeline()">Session Timeline <span id="tlToggle" style="font-size:0.65rem;color:var(--text-muted);margin-left:6px;">&#9660;</span></h3>
+<!-- ========== SESSION TIMELINE ========== -->
+<div class="timeline-section card" id="timelineSection" style="display:none">
+  <div class="section-title" style="cursor:pointer;user-select:none;" onclick="toggleTimeline()">Session Timeline <span id="tlToggle" style="font-size:0.65rem;color:var(--text-tertiary);margin-left:6px;">&#9660;</span></div>
   <div class="timeline" id="timeline"></div>
 </div>
 
-<!-- Charts -->
+<!-- ========== CHARTS ROW ========== -->
 <div class="charts-row" id="chartsRow">
-  <div class="chart-card">
-    <h3>Transfer Speed</h3>
+  <div class="chart-card card">
+    <div class="chart-header">
+      <span class="chart-title">Transfer Speed</span>
+    </div>
     <div class="chart-container"><svg class="chart-svg" id="speedChart" aria-label="Speed chart"></svg></div>
   </div>
-  <div class="chart-card">
-    <h3>Data Progress Over Time</h3>
+  <div class="chart-card card">
+    <div class="chart-header">
+      <span class="chart-title">Data Progress</span>
+    </div>
     <div class="chart-container"><svg class="chart-svg" id="progressChart" aria-label="Data progress chart"></svg></div>
   </div>
 </div>
 
-<div class="chart-full" id="chartsFullRow">
-  <h3>Files Transferred Over Time (Global)</h3>
+<!-- ========== FILES CHART ========== -->
+<div class="chart-card-full card" id="chartsFullRow">
+  <div class="chart-header">
+    <span class="chart-title">Files Transferred Over Time</span>
+  </div>
   <div class="chart-container"><svg class="chart-svg" id="filesChart" aria-label="Files transferred chart"></svg></div>
 </div>
 
-<!-- Daily Transfer Bar Chart -->
-<div class="chart-card" style="margin-bottom:24px;display:none;" id="dailyChartSection">
-  <h3>Daily Transfer Volume</h3>
+<!-- ========== DAILY VOLUME ========== -->
+<div class="chart-card card daily-chart-section" id="dailyChartSection">
+  <div class="chart-header">
+    <span class="chart-title">Daily Transfer Volume</span>
+  </div>
   <div id="dailyBars" style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:12px;"></div>
 </div>
 
-<!-- Errors -->
+<!-- ========== ERRORS ========== -->
 <div class="error-section" id="errorSection">
   <h3>Errors</h3>
   <div id="errorList"></div>
 </div>
 
-<!-- Active Transfers -->
-<div class="transfers-section" id="transfersSection">
+<!-- ========== ACTIVE TRANSFERS ========== -->
+<div class="active-section card" id="transfersSection">
   <div class="section-header">
     <h3>Active Transfers</h3>
     <div class="transfer-count" id="transferCount">0 active</div>
@@ -1944,21 +2240,22 @@ body::before {
   <div id="transfersList"></div>
 </div>
 
-<!-- Recent + Types -->
-<div class="recent-section" id="recentSection">
-  <div class="recent-card">
-    <h3>Recently Completed</h3>
+<!-- ========== BOTTOM ROW ========== -->
+<div class="bottom-row" id="recentSection">
+  <div class="completed-section card">
+    <div class="section-title">Recently Completed</div>
     <div id="recentFiles"></div>
   </div>
-  <div class="recent-card">
-    <h3>File Types (All Sessions)</h3>
+  <div class="filetypes-section card">
+    <div class="section-title">File Types</div>
     <div id="fileTypes"></div>
   </div>
 </div>
 
-<div class="footer" id="footer">
-  CloudMirror Dashboard &middot; Auto-refresh 5s &middot; <span id="footerInfo">--</span> &middot; <a href="#" onclick="showHistory();return false;" style="color:var(--blue-light);text-decoration:none;">Transfer History</a>
-</div>
+<!-- ========== FOOTER ========== -->
+<footer class="footer" id="footer">
+  CloudMirror Dashboard &middot; Auto-refresh 5s &middot; <span id="footerInfo">--</span> &middot; Uptime: <span id="uptimePct">--</span> &middot; Updated: <span id="lastUpdate">--</span> &middot; <a href="#" onclick="showHistory();return false;">Transfer History</a>
+</footer>
 
 </div>
 
@@ -1988,7 +2285,7 @@ function showConfirmModal(message) {
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    overlay.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);"><p style="margin:0 0 20px;font-size:0.95rem;color:var(--text);">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p><div style="display:flex;gap:10px;justify-content:flex-end;"><button id="_cm_cancel" style="padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;">Cancel</button><button id="_cm_ok" style="padding:8px 18px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-weight:600;">OK</button></div></div>`;
+    overlay.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);"><p style="margin:0 0 20px;font-size:0.95rem;color:var(--text-primary);">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p><div style="display:flex;gap:10px;justify-content:flex-end;"><button id="_cm_cancel" style="padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;">Cancel</button><button id="_cm_ok" style="padding:8px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;cursor:pointer;font-weight:600;">OK</button></div></div>`;
     document.body.appendChild(overlay);
     function cleanup() { overlay.remove(); document.removeEventListener('keydown', escHandler); }
     function escHandler(e) { if (e.key === 'Escape') { cleanup(); resolve(false); } }
@@ -2055,8 +2352,8 @@ function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
   const h = svg.clientHeight || 140;
   const realData = data.filter(v => v !== null);
   if (realData.length < 2) {
-    const emptyColor = cs.getPropertyValue('--text-dim').trim() || '#6b7280';
-    svg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="${emptyColor}" font-size="12" font-family="Inter">Collecting data...</text>`;
+    const emptyColor = cs.getPropertyValue('--text-secondary').trim() || '#6b7280';
+    svg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="${emptyColor}" font-size="12" font-family="DM Sans, sans-serif">Collecting data...</text>`;
     return;
   }
   const pad = { t: 12, b: 20, l: 52, r: 12 };
@@ -2101,7 +2398,7 @@ function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
   for (let tick = niceMin; tick <= niceMax; tick += tickSpacing) {
     const y = pad.t + ch - ((tick - niceMin) / (niceMax - niceMin)) * ch;
     html += `<line x1="${pad.l}" y1="${y}" x2="${w - pad.r}" y2="${y}" stroke="${cGrid}" stroke-width="1"/>`;
-    html += `<text x="${pad.l - 6}" y="${y + 3}" text-anchor="end" fill="${cText}" font-size="9" font-family="Inter">${formatY ? formatY(tick) : tick.toFixed(1)}</text>`;
+    html += `<text x="${pad.l - 6}" y="${y + 3}" text-anchor="end" fill="${cText}" font-size="9" font-family="JetBrains Mono, monospace">${formatY ? formatY(tick) : tick.toFixed(1)}</text>`;
   }
 
   const maxVal = niceMax;
@@ -2145,8 +2442,8 @@ function drawAreaChart(svgId, data, color, gradId, formatY, minZero, maxCap) {
     const last = lastSeg[lastSeg.length - 1];
     const lx = pad.l + (last.i / (data.length - 1)) * cw;
     const ly = pad.t + ch - ((last.v - minVal) / (maxVal - minVal)) * ch;
-    html += `<circle cx="${lx}" cy="${ly}" r="3.5" fill="${color}" stroke="${cs.getPropertyValue('--card').trim()}" stroke-width="2"/>`;
-    html += `<text x="${w-pad.r}" y="${h-3}" text-anchor="end" fill="${cText}" font-size="9" font-family="Inter">${formatY ? formatY(last.v) : last.v.toFixed(2)}</text>`;
+    html += `<circle cx="${lx}" cy="${ly}" r="3.5" fill="${color}" stroke="${cs.getPropertyValue('--bg-card').trim()}" stroke-width="2"/>`;
+    html += `<text x="${w-pad.r}" y="${h-3}" text-anchor="end" fill="${cText}" font-size="9" font-family="JetBrains Mono, monospace">${formatY ? formatY(last.v) : last.v.toFixed(2)}</text>`;
   }
 
   svg.innerHTML = html;
@@ -2176,6 +2473,30 @@ function friendlyError(msg) {
     return msg;
 }
 
+// Update header status dot appearance
+function updateStatusDot(state) {
+  const dot = document.getElementById('statusDot');
+  if (!dot) return;
+  dot.className = 'status-dot';
+  dot.style.animation = '';
+  dot.style.background = '';
+  dot.style.boxShadow = '';
+  if (state === 'active') {
+    dot.classList.add('active');
+    dot.style.background = '#22c55e';
+    dot.style.boxShadow = '0 0 8px rgba(34,197,94,0.5)';
+  } else if (state === 'paused') {
+    dot.classList.add('paused');
+  } else if (state === 'error' || state === 'stopped') {
+    dot.classList.add('error');
+  } else if (state === 'complete') {
+    dot.classList.add('complete');
+  } else {
+    dot.style.background = 'var(--text-tertiary)';
+    dot.style.boxShadow = 'none';
+  }
+}
+
 async function refresh() {
   try {
     const res = await fetch('/api/status');
@@ -2192,12 +2513,12 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
-      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','statusBadge'].forEach(id => {
+      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
-      const ht = document.getElementById('headerTimers');
-      if (ht) ht.style.display = 'none';
+      updateStatusDot('idle');
+      document.getElementById('statusText').textContent = 'Idle';
       return;
     }
     // If rclone is running but log not ready yet, show Starting state
@@ -2207,55 +2528,40 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = '';
       });
-      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','statusBadge'].forEach(id => {
+      ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = '';
       });
-      const ht2 = document.getElementById('headerTimers');
-      if (ht2) ht2.style.display = '';
-      const badge = document.getElementById('statusBadge');
-      badge.className = 'status-badge active';
+      updateStatusDot('active');
       document.getElementById('statusText').textContent = 'Starting...';
-      badge.querySelector('.status-dot').style.animation = '';
       return;
     }
 
-    // Status badge
-    const badge = document.getElementById('statusBadge');
-    const statusText = document.getElementById('statusText');
+    // Status
     if (d.finished && d.global_pct >= 100) {
-      badge.className = 'status-badge active';
-      statusText.textContent = 'Complete';
-      badge.querySelector('.status-dot').style.animation = 'none';
-      badge.querySelector('.status-dot').style.background = 'var(--green)';
+      updateStatusDot('complete');
+      document.getElementById('statusText').textContent = 'Complete';
       updateButtons(false);
       if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = setInterval(refresh, 30000); }
     } else if (d.rclone_running && !d.speed && !d.session_num) {
-      badge.className = 'status-badge active';
-      statusText.textContent = 'Starting...';
-      badge.querySelector('.status-dot').style.animation = '';
+      updateStatusDot('active');
+      document.getElementById('statusText').textContent = 'Starting...';
       updateButtons(true);
     } else if (d.finished && !d.rclone_running && d.global_pct < 100) {
-      badge.className = 'status-badge stopped';
-      statusText.textContent = 'Stopped';
-      badge.querySelector('.status-dot').style.animation = 'none';
-      badge.querySelector('.status-dot').style.background = 'var(--red)';
+      updateStatusDot('stopped');
+      document.getElementById('statusText').textContent = 'Stopped';
       updateButtons(false);
     } else if (d.finished) {
-      badge.className = 'status-badge paused';
-      statusText.textContent = 'Paused';
-      badge.querySelector('.status-dot').style.animation = 'none';
+      updateStatusDot('paused');
+      document.getElementById('statusText').textContent = 'Paused';
       updateButtons(false);
     } else if (!d.speed && !d.session_num) {
-      badge.className = 'status-badge paused';
-      statusText.textContent = 'Idle';
-      badge.querySelector('.status-dot').style.animation = 'none';
-      badge.querySelector('.status-dot').style.background = 'var(--text-dim)';
+      updateStatusDot('idle');
+      document.getElementById('statusText').textContent = 'Idle';
       updateButtons(false);
     } else {
-      badge.className = 'status-badge active';
-      statusText.textContent = 'Transferring';
-      badge.querySelector('.status-dot').style.animation = '';
+      updateStatusDot('active');
+      document.getElementById('statusText').textContent = 'Transferring';
       updateButtons(true);
     }
 
@@ -2266,12 +2572,10 @@ async function refresh() {
       const el = document.getElementById(id);
       if (el) el.style.display = isEmpty ? 'none' : '';
     });
-    ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge','statusBadge'].forEach(id => {
+    ['btnPause','btnResume','btnCancel','btnNewTransfer','sessionBadge'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.style.display = isEmpty ? 'none' : '';
+      if (el && isEmpty) el.style.display = 'none';
     });
-    const headerTimers = document.getElementById('headerTimers');
-    if (headerTimers) headerTimers.style.display = isEmpty ? 'none' : '';
     if (isEmpty) return;
 
     // Session badge
@@ -2290,13 +2594,16 @@ async function refresh() {
 
     // Wall clock + uptime
     if (d.wall_clock) document.getElementById('wallClock').textContent = d.wall_clock;
-    if (d.uptime_pct !== undefined) document.getElementById('uptimePct').textContent = d.uptime_pct + '%';
+    const uptimeEl = document.getElementById('uptimePct');
+    if (d.uptime_pct !== undefined && uptimeEl) uptimeEl.textContent = d.uptime_pct + '%';
 
     // Big progress - GLOBAL
     const pct = d.global_pct || 0;
     document.getElementById('bigPct').textContent = pct;
     document.getElementById('bigBar').style.width = Math.max(pct, 0.2) + '%';
     document.getElementById('bigBar').setAttribute('aria-valuenow', pct);
+    const glowEl = document.getElementById('progressGlow');
+    if (glowEl) glowEl.style.width = Math.max(pct, 0.2) + '%';
     if (d.global_transferred) document.getElementById('bpTransferred').textContent = d.global_transferred;
     if (d.global_total) document.getElementById('bpTotal').textContent = d.global_total;
     if (pct >= 100) {
@@ -2357,7 +2664,7 @@ async function refresh() {
         const prev = realSpeeds[realSpeeds.length - 2];
         const diff = speedMbs - prev;
         const arrow = diff > 0.05 ? '\u2191' : diff < -0.05 ? '\u2193' : '\u2192';
-        const diffColor = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text-dim)';
+        const diffColor = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text-secondary)';
         document.getElementById('speedSub').innerHTML = `<span style="color:${diffColor}">${arrow} ${Math.abs(diff).toFixed(2)} MiB/s</span>`;
       }
       if (speedMbs > peakSpeedVal) {
@@ -2436,11 +2743,11 @@ async function refresh() {
       let html = '';
       if (totalSessions > 5 && !showAll) {
         html += `<div style="text-align:center;margin-bottom:12px;">
-          <button onclick="window._showAllSessions=true;refresh();" style="background:var(--card);border:1px solid var(--card-border);color:var(--text);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:0.75rem;">Show all ${totalSessions} sessions</button>
+          <button onclick="window._showAllSessions=true;refresh();" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:0.75rem;">Show all ${totalSessions} sessions</button>
         </div>`;
       } else if (totalSessions > 5 && showAll) {
         html += `<div style="text-align:center;margin-bottom:12px;">
-          <button onclick="window._showAllSessions=false;refresh();" style="background:var(--card);border:1px solid var(--card-border);color:var(--text);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:0.75rem;">Show last 5 sessions</button>
+          <button onclick="window._showAllSessions=false;refresh();" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:0.75rem;">Show last 5 sessions</button>
         </div>`;
       }
       d.sessions.forEach((s, idx) => {
@@ -2452,11 +2759,11 @@ async function refresh() {
           <div class="tl-dot ${dotClass}"></div>
           <div class="tl-header">
             <div class="tl-title">${label}</div>
-            <div class="tl-time">${esc(s.start || '--')} → ${isLast && !d.finished ? 'now' : esc(s.end || '--')}</div>
+            <div class="tl-time">${esc(s.start || '--')} \u2192 ${isLast && !d.finished ? 'now' : esc(s.end || '--')}</div>
           </div>
           <div class="tl-stats">
-            Transferred: <span>${esc(s.transferred)}</span> &middot;
-            Files: <span>${s.files.toLocaleString()}</span> &middot;
+            Transferred: <span>${esc(s.transferred)}</span> \u00b7
+            Files: <span>${s.files.toLocaleString()}</span> \u00b7
             Duration: <span>${esc(s.elapsed)}</span>
           </div>
         </div>`;
@@ -2496,16 +2803,16 @@ async function refresh() {
         let eta = t.eta || '';
         if (isStalled || (eta && /^\d{4,}h/.test(eta))) eta = '';
         let statusHtml = t.speed || '--';
-        let barColor = 'var(--blue)';
+        let barColor = 'var(--primary)';
         if (isStalled) {
           statusHtml = '<span style="color:var(--orange);font-size:0.65rem;font-weight:600">STALLED</span>';
           barColor = 'var(--orange)';
         } else if (isQueued) {
-          statusHtml = '<span style="color:var(--text-muted);font-size:0.65rem;font-weight:600">QUEUED</span>';
-          barColor = 'var(--text-muted)';
+          statusHtml = '<span style="color:var(--text-tertiary);font-size:0.65rem;font-weight:600">QUEUED</span>';
+          barColor = 'var(--text-tertiary)';
         }
         return `<div class="transfer-item">
-          <div class="fname" title="${esc(t.name)}">${esc(t.name)}${t.size ? ' <span style="color:var(--text-dim);font-size:0.65rem">(' + esc(t.size) + ')</span>' : ''}</div>
+          <div class="fname" title="${esc(t.name)}">${esc(t.name)}${t.size ? ' <span style="color:var(--text-secondary);font-size:0.65rem">(' + esc(t.size) + ')</span>' : ''}</div>
           <div class="mini-bar"><div class="mini-fill" style="width:${t.pct}%;background:${barColor}"></div></div>
           <div class="tpct">${t.pct}%</div>
           <div class="tspeed">${statusHtml}</div>
@@ -2513,7 +2820,7 @@ async function refresh() {
         </div>`;
       }).join('');
     } else {
-      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-dim);font-size:0.8rem;">No active transfers</div>';
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:0.8rem;">No active transfers</div>';
     }
 
     // Recent files
@@ -2527,7 +2834,7 @@ async function refresh() {
         </div>`;
       }).join('');
     } else {
-      document.getElementById('recentFiles').innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-dim);font-size:0.8rem;">No recent completions</div>';
+      document.getElementById('recentFiles').innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:0.8rem;">No recent completions</div>';
     }
 
     // File types
@@ -2547,7 +2854,8 @@ async function refresh() {
         }).join('') + '</div>';
     }
 
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    if (lastUpdateEl) lastUpdateEl.textContent = new Date().toLocaleTimeString();
 
     updateFavicon(pct);
 
@@ -2579,11 +2887,11 @@ async function refresh() {
         const h = maxGib > 0 ? Math.max(4, (ds.gib / maxGib) * 100) : 4;
         const dayLabel = ds.day.slice(5);
         const isToday = ds.day === new Date().toISOString().slice(0,10).replace(/\//g,'-');
-        const color = isToday ? 'var(--green)' : 'var(--blue)';
+        const color = isToday ? 'var(--green)' : 'var(--primary)';
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
-          <span style="font-size:0.65rem;color:var(--text)">${esc(ds.gib + ' GiB')}</span>
+          <span style="font-size:0.65rem;color:var(--text-primary)">${esc(ds.gib + ' GiB')}</span>
           <div style="width:100%;height:${h}px;background:${color};border-radius:4px 4px 0 0;opacity:0.7;"></div>
-          <span style="font-size:0.6rem;color:var(--text-dim)">${esc(dayLabel)}</span>
+          <span style="font-size:0.6rem;color:var(--text-secondary)">${esc(dayLabel)}</span>
         </div>`;
       }).join('');
     }
@@ -2599,11 +2907,11 @@ async function refresh() {
   }
 }
 
-// ─── Pause / Resume ───────────────────────────────────────────────────────
+// Pause / Resume
 function showToast(msg, color) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.borderColor = color || 'var(--blue)';
+  t.style.borderColor = color || 'var(--primary)';
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
@@ -2660,7 +2968,8 @@ function toggleTheme() {
   const next = current === 'light' ? 'dark' : 'light';
   html.setAttribute('data-theme', next);
   localStorage.setItem('cloudmirror-theme', next);
-  document.getElementById('themeToggle').textContent = next === 'light' ? '\u2600' : '\u263E';
+  document.getElementById('theme-icon-dark').style.display = next === 'light' ? 'none' : 'block';
+  document.getElementById('theme-icon-light').style.display = next === 'light' ? 'block' : 'none';
   // Clear chart cache so they redraw with new theme colors
   if (drawAreaChart._cache) drawAreaChart._cache = {};
   // Redraw charts with new colors
@@ -2673,16 +2982,19 @@ function toggleTheme() {
   const saved = localStorage.getItem('cloudmirror-theme');
   if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
     document.documentElement.setAttribute('data-theme', 'light');
-    document.getElementById('themeToggle').textContent = '\u2600';
+    document.getElementById('theme-icon-dark').style.display = 'none';
+    document.getElementById('theme-icon-light').style.display = 'block';
   }
   if (saved === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
-    document.getElementById('themeToggle').textContent = '\u2600';
+    document.getElementById('theme-icon-dark').style.display = 'none';
+    document.getElementById('theme-icon-light').style.display = 'block';
   }
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
     if (!localStorage.getItem('cloudmirror-theme')) {
       document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
-      document.getElementById('themeToggle').textContent = e.matches ? '\u2600' : '\u263E';
+      document.getElementById('theme-icon-dark').style.display = e.matches ? 'none' : 'block';
+      document.getElementById('theme-icon-light').style.display = e.matches ? 'block' : 'none';
       if (drawAreaChart._cache) drawAreaChart._cache = {};
     }
   });
@@ -2699,7 +3011,7 @@ function updateFavicon(pct) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#0d1220';
   ctx.beginPath(); ctx.arc(16, 16, 16, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#3b82f6';
+  ctx.strokeStyle = '#6366f1';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(16, 16, 12, -Math.PI/2, -Math.PI/2 + (pct/100) * Math.PI * 2);
@@ -2768,17 +3080,17 @@ async function showHistory() {
     if (existing) existing.remove();
     const res = await fetch('/api/history');
     const data = await res.json();
-    if (!data.length) { showToast('No transfer history found.', 'var(--text-dim)'); return; }
+    if (!data.length) { showToast('No transfer history found.', 'var(--text-secondary)'); return; }
     let html = '<div data-history-modal style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()">';
-    html += '<div style="background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">';
-    html += '<h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:16px;">Transfer History</h3>';
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">';
+    html += '<h3 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;">Transfer History</h3>';
     data.forEach(h => {
-      html += '<div style="padding:10px 0;border-bottom:1px solid var(--card-border);">';
-      html += '<div style="font-weight:600;color:var(--text);font-size:0.85rem;">' + esc(h.label) + '</div>';
-      html += '<div style="font-size:0.7rem;color:var(--text-dim);">' + h.sessions + ' session(s)</div>';
+      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border);">';
+      html += '<div style="font-weight:600;color:var(--text-primary);font-size:0.85rem;">' + esc(h.label) + '</div>';
+      html += '<div style="font-size:0.7rem;color:var(--text-secondary);">' + h.sessions + ' session(s)</div>';
       html += '</div>';
     });
-    html += '<button onclick="this.parentElement.parentElement.remove()" style="margin-top:16px;padding:10px 24px;border-radius:8px;border:1px solid var(--card-border);background:var(--card);color:var(--text);cursor:pointer;font-size:0.85rem;">Close</button>';
+    html += '<button onclick="this.parentElement.parentElement.remove()" style="margin-top:16px;padding:10px 24px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-size:0.85rem;">Close</button>';
     html += '</div></div>';
     document.body.insertAdjacentHTML('beforeend', html);
   } catch(e) { showToast('Could not load history.', 'var(--red)'); }
