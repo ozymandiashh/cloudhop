@@ -5,6 +5,7 @@ function esc(s) {
   return d.innerHTML;
 }
 
+let completionShown = false;
 let failCount = 0;
 let speedHistory = [];
 let progressHistory = [];
@@ -253,6 +254,43 @@ function setHTML(id, val) { const el = $(id); if (el) el.innerHTML = val; }
 function setDisplay(id, val) { const el = $(id); if (el) el.style.display = val; }
 function setWidth(id, val) { const el = $(id); if (el) el.style.width = val; }
 
+function showCompletionScreen(d) {
+    const overlay = document.createElement('div');
+    overlay.id = 'completionOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9998;backdrop-filter:blur(8px);';
+    const totalFiles = d.global_files_done ? d.global_files_done.toLocaleString() : '0';
+    const totalSize = d.global_transferred || '--';
+    const totalTime = d.global_elapsed || '--';
+    overlay.innerHTML = `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:480px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+            <div style="font-size:3rem;margin-bottom:16px;">&#10024;</div>
+            <h2 style="font-size:1.5rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Transfer Complete!</h2>
+            <p style="color:var(--text-secondary);margin-bottom:24px;">All your files have been copied successfully.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px;">
+                <div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--text-primary);">${esc(totalSize)}</div>
+                    <div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Transferred</div>
+                </div>
+                <div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--text-primary);">${totalFiles}</div>
+                    <div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Files</div>
+                </div>
+                <div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--text-primary);">${esc(totalTime)}</div>
+                    <div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Duration</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <a href="/wizard" style="padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;text-decoration:none;font-weight:600;font-size:0.9rem;">New Transfer</a>
+                <button onclick="this.closest('#completionOverlay').remove()" style="padding:12px 24px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-size:0.9rem;">View Dashboard</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.addEventListener('keydown', function escClose(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escClose); } });
+}
+
 async function refresh() {
   try {
     const res = await fetch('/api/status');
@@ -302,6 +340,14 @@ async function refresh() {
       updateStatusDot('complete');
       document.getElementById('statusText').textContent = 'Complete';
       updateButtons(false);
+      const btnResume2 = document.getElementById('btnResume2');
+      if (btnResume2) btnResume2.style.display = 'none';
+      const btnPause2 = document.getElementById('btnPause2');
+      if (btnPause2) btnPause2.style.display = 'none';
+      if (!completionShown && pct >= 100) {
+          completionShown = true;
+          showCompletionScreen(d);
+      }
       if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
       refreshInterval = setInterval(refresh, 30000);
     } else if (d.rclone_running && !d.speed && !d.session_num) {

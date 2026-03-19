@@ -50,6 +50,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         allowed_origins = {f"http://localhost:{port}", f"http://127.0.0.1:{port}"}
         if origin in allowed_origins:
             self.send_header("Access-Control-Allow-Origin", origin)
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
@@ -57,6 +58,9 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Set-Cookie", f"csrf_token={CSRF_TOKEN}; Path=/; SameSite=Strict")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(html.encode())
 
@@ -78,6 +82,8 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         content_types = {"css": "text/css", "js": "application/javascript", "svg": "image/svg+xml"}
         self.send_response(200)
         self.send_header("Content-Type", content_types.get(ext, "text/plain"))
+        size = os.path.getsize(filepath)
+        self.send_header("Content-Length", str(size))
         self.end_headers()
         with open(filepath, "rb") as f:
             self.wfile.write(f.read())

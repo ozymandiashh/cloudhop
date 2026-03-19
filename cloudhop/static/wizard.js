@@ -430,6 +430,8 @@ function checkAllConnected() {
 let pollInterval = null;
 function startPolling(name, display, type) {
   if (pollInterval) clearInterval(pollInterval);
+  const remoteName = name;
+  const remoteType = type;
   pollInterval = setInterval(async () => {
     try {
       const resp = await fetch('/api/wizard/check-remote', {
@@ -455,6 +457,17 @@ function startPolling(name, display, type) {
       }
     } catch(e) {}
   }, 2000);
+  // Timeout after 2 minutes
+  setTimeout(() => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+      const statusEl = document.querySelector(`[data-remote="${remoteName}"] .connect-status`);
+      if (statusEl && !statusEl.classList.contains('connected')) {
+        statusEl.innerHTML = '<span style="color:var(--orange);">Timed out.</span> <button onclick="connectRemote(\'' + remoteName.replace(/'/g, "\\'") + '\',\'' + remoteType.replace(/'/g, "\\'") + '\',\'' + display.replace(/'/g, "\\'") + '\')" style="color:var(--primary);background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">Try again</button>';
+      }
+    }
+  }, 120000);
 }
 
 // Build summary
