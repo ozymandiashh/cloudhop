@@ -154,9 +154,19 @@ def _cli_subcommand(cmd: str) -> bool:
     return False
 
 
-def main() -> None:
+def main(force_native: bool = False) -> None:
     """Main entry point -- wizard mode (no args) or CLI mode (source dest [flags])."""
     args = sys.argv[1:]
+
+    # Handle --browser / --app flags
+    if "--browser" in args:
+        args.remove("--browser")
+        start_dashboard._force_browser = True  # type: ignore[attr-defined]
+        start_dashboard._force_native = False  # type: ignore[attr-defined]
+    elif "--app" in args or force_native:
+        args.remove("--app") if "--app" in args else None
+        start_dashboard._force_native = True  # type: ignore[attr-defined]
+        start_dashboard._force_browser = False  # type: ignore[attr-defined]
 
     # Handle CLI subcommands before initializing the full server
     if len(args) == 1 and args[0] in ("status", "pause", "resume", "history"):
@@ -201,6 +211,11 @@ def main() -> None:
             print("  CloudHop - Advanced Mode")
             print(f"  Command: {' '.join(manager.rclone_cmd)}")
             start_dashboard(manager, start_rclone=True)
+
+
+def main_app() -> None:
+    """Entry point for cloudhop-app: always opens native window."""
+    main(force_native=True)
 
 
 def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> None:
@@ -290,24 +305,60 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
     print("  Press Ctrl+C to stop the server.")
     print()
 
-    # Try to open browser automatically (after port binding succeeds)
-    try:
-        webbrowser.open(f"http://localhost:{port}")
-    except Exception:
-        pass
+    url = f"http://localhost:{port}"
+    logger.info("Server listening on %s", url)
 
-    logger.info("Server listening on http://localhost:%d", port)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        _signal_handler(manager)
-    except Exception as e:
-        logger.exception("Server crashed: %s", e)
-        print(f"\n  CloudHop server crashed: {e}")
-        print("  The file transfer continues in the background.")
-        print(f"  Check logs: {os.path.join(manager.cm_dir, 'cloudhop-server.log')}")
-        print("  Run 'cloudhop' again to reconnect to the dashboard.")
+    # Native window mode (pywebview) or browser mode
+    use_native = getattr(start_dashboard, "_force_native", False)
+    if not getattr(start_dashboard, "_force_browser", False):
+        try:
+            import webview  # noqa: F811
+            use_native = True
+        except ImportError:
+            use_native = False
+
+    if use_native:
+        # Run HTTP server in a background thread
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        logger.info("Native window mode (pywebview)")
+        print(f"  CloudHop: {url}")
         print()
+        try:
+            import webview
+            webview.create_window(
+                "CloudHop",
+                url,
+                width=1100,
+                height=750,
+                min_size=(800, 600),
+            )
+            webview.start()
+        except Exception as e:
+            logger.error("Native window failed: %s, falling back to browser", e)
+            print(f"  Native window failed ({e}), opening browser instead...")
+            use_native = False
+
+    if not use_native:
+        # Browser mode (original behavior)
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            logger.exception("Server crashed: %s", e)
+            print(f"\n  CloudHop server crashed: {e}")
+            print("  The file transfer continues in the background.")
+            print(f"  Check logs: {os.path.join(manager.cm_dir, 'cloudhop-server.log')}")
+            print("  Run 'cloudhop' again to reconnect to the dashboard.")
+            print()
+            return
+
+    _signal_handler(manager)
 
 
 def parse_cli_args(manager: TransferManager, args: List[str]) -> None:
