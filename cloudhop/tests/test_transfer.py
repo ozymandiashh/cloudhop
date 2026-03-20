@@ -4,11 +4,14 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import textwrap
 import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+_POSIX = sys.platform != "win32"
 
 from cloudhop.transfer import TransferManager, get_existing_remotes, remote_exists
 
@@ -217,6 +220,7 @@ class TestTransferControl:
         manager.rclone_pid = None
         assert manager.is_rclone_running() is False
 
+    @pytest.mark.skipif(not _POSIX, reason="os.WNOHANG is POSIX-only")
     @patch("os.waitpid", return_value=(0, 0))
     def test_is_rclone_running_with_pid_alive(self, mock_waitpid, manager):
         """Returns True when os.waitpid says the process is still running."""
@@ -224,6 +228,7 @@ class TestTransferControl:
         assert manager.is_rclone_running() is True
         mock_waitpid.assert_called_once_with(12345, os.WNOHANG)
 
+    @pytest.mark.skipif(not _POSIX, reason="os.WNOHANG is POSIX-only")
     @patch("os.waitpid", return_value=(12345, 0))
     def test_is_rclone_running_with_pid_exited(self, mock_waitpid, manager):
         """Returns False and clears pid when process has exited."""
@@ -231,6 +236,7 @@ class TestTransferControl:
         assert manager.is_rclone_running() is False
         assert manager.rclone_pid is None
 
+    @pytest.mark.skipif(not _POSIX, reason="os.WNOHANG is POSIX-only")
     @patch("os.waitpid", side_effect=ChildProcessError)
     @patch("os.kill")
     def test_is_rclone_running_not_child_but_alive(self, mock_kill, mock_waitpid, manager):
@@ -239,6 +245,7 @@ class TestTransferControl:
         assert manager.is_rclone_running() is True
         mock_kill.assert_called_once_with(99999, 0)
 
+    @pytest.mark.skipif(not _POSIX, reason="os.WNOHANG is POSIX-only")
     @patch("os.waitpid", side_effect=ChildProcessError)
     @patch("os.kill", side_effect=ProcessLookupError)
     def test_is_rclone_running_not_child_and_dead(self, mock_kill, mock_waitpid, manager):
@@ -247,6 +254,23 @@ class TestTransferControl:
         assert manager.is_rclone_running() is False
         assert manager.rclone_pid is None
 
+    @pytest.mark.skipif(_POSIX, reason="Windows-specific: kill(0) probe")
+    @patch("os.kill")
+    def test_is_rclone_running_alive_windows(self, mock_kill, manager):
+        """On Windows, kill(0) probes existence; returns True if alive."""
+        manager.rclone_pid = 12345
+        assert manager.is_rclone_running() is True
+        mock_kill.assert_called_once_with(12345, 0)
+
+    @pytest.mark.skipif(_POSIX, reason="Windows-specific: kill(0) probe")
+    @patch("os.kill", side_effect=ProcessLookupError)
+    def test_is_rclone_running_dead_windows(self, mock_kill, manager):
+        """On Windows, kill(0) raises ProcessLookupError when process is gone."""
+        manager.rclone_pid = 12345
+        assert manager.is_rclone_running() is False
+        assert manager.rclone_pid is None
+
+    @pytest.mark.skipif(not _POSIX, reason="POSIX pause uses os.kill(SIGTERM)")
     @patch("os.kill")
     @patch("time.sleep")
     def test_pause_kills_process(self, mock_sleep, mock_kill, manager):
@@ -260,6 +284,23 @@ class TestTransferControl:
         mock_kill.assert_called_once_with(5555, signal.SIGTERM)
         assert manager.rclone_pid is None
 
+    @pytest.mark.skipif(_POSIX, reason="Windows pause uses taskkill")
+    @patch("subprocess.run")
+    @patch("time.sleep")
+    def test_pause_kills_process_windows(self, mock_sleep, mock_run, manager):
+        """pause() uses taskkill on Windows."""
+        mock_run.return_value = MagicMock(returncode=0)
+        manager.rclone_pid = 5555
+        manager.log_file = "/nonexistent/log"
+
+        result = manager.pause()
+        assert result["ok"] is True
+        assert "5555" in result["msg"]
+        mock_run.assert_called_once_with(
+            ["taskkill", "/F", "/T", "/PID", "5555"], capture_output=True
+        )
+        assert manager.rclone_pid is None
+
     def test_pause_no_process(self, manager):
         """pause() returns error when no process is tracked."""
         manager.rclone_pid = None
@@ -267,6 +308,7 @@ class TestTransferControl:
         assert result["ok"] is False
         assert "No tracked" in result["msg"]
 
+    @pytest.mark.skipif(not _POSIX, reason="POSIX pause uses os.kill")
     @patch("os.kill", side_effect=ProcessLookupError)
     @patch("time.sleep")
     def test_pause_process_already_gone(self, mock_sleep, mock_kill, manager):
@@ -291,8 +333,9 @@ class TestTransferControl:
         assert manager.rclone_pid == 9999
         mock_popen.assert_called_once()
 
+    @patch("os.kill")
     @patch("os.waitpid", return_value=(0, 0))
-    def test_resume_already_running(self, mock_waitpid, manager):
+    def test_resume_already_running(self, mock_waitpid, mock_kill, manager):
         """resume() returns error when rclone is already running."""
         manager.rclone_cmd = ["rclone", "copy", "src:", "dst:"]
         manager.rclone_pid = 1234
@@ -397,8 +440,9 @@ class TestTransferControl:
         assert "--drive-chunk-size=256M" in cmd
         assert "--buffer-size=128M" in cmd
 
+    @patch("os.kill")
     @patch("os.waitpid", return_value=(0, 0))
-    def test_start_transfer_lock_prevents_concurrent(self, mock_waitpid, manager):
+    def test_start_transfer_lock_prevents_concurrent(self, mock_waitpid, mock_kill, manager):
         """start_transfer rejects a second transfer while one is running."""
         manager.transfer_active = True
         manager.rclone_pid = 1111
@@ -520,8 +564,9 @@ class TestLogParsing:
         result = m.parse_current()
         assert result["finished"] is True
 
+    @patch("os.kill")
     @patch("os.waitpid", return_value=(0, 0))
-    def test_parse_current_running_flag(self, mock_waitpid, manager_with_log):
+    def test_parse_current_running_flag(self, mock_waitpid, mock_kill, manager_with_log):
         """finished is False when rclone is running."""
         m = manager_with_log
         m.rclone_pid = 1234
@@ -983,8 +1028,9 @@ class TestVerifyTransfer:
         assert result["ok"] is False
         assert "No transfer" in result["msg"]
 
+    @patch("os.kill")
     @patch("os.waitpid", return_value=(0, 0))
-    def test_verify_while_running(self, mock_waitpid, manager):
+    def test_verify_while_running(self, mock_waitpid, mock_kill, manager):
         """verify_transfer returns error when rclone is still running."""
         manager.rclone_pid = 1234
         manager.rclone_cmd = ["rclone", "copy", "src:", "dst:"]

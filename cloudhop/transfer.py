@@ -370,31 +370,36 @@ class TransferManager:
         processes are reaped immediately.  If the PID is not a direct child
         (e.g. when ``--attach-pid`` was used), we fall back to
         ``os.kill(pid, 0)`` which probes existence without sending a signal.
-        Windows doesn't have waitpid; the kill-0 fallback handles it there.
+        On Windows, ``os.WNOHANG`` does not exist, so we skip straight to
+        the ``kill(pid, 0)`` probe.
         """
         with self.state_lock:
             pid = self.rclone_pid  # snapshot to avoid race
             if not pid:
                 return False
-            try:
-                waited_pid, status = os.waitpid(pid, os.WNOHANG)
-                if waited_pid == 0:
-                    return True  # still running
-                self.rclone_pid = None  # reaped zombie
-                self.transfer_active = False
-                return False
-            except ChildProcessError:
-                # Not our child - fall back to kill check
+            # POSIX: reap zombies via waitpid before probing
+            if hasattr(os, "WNOHANG"):
                 try:
-                    os.kill(pid, 0)
-                    return True
+                    waited_pid, status = os.waitpid(pid, os.WNOHANG)
+                    if waited_pid == 0:
+                        return True  # still running
+                    self.rclone_pid = None  # reaped zombie
+                    self.transfer_active = False
+                    return False
+                except ChildProcessError:
+                    pass  # not our child, fall through to kill(0)
                 except (ProcessLookupError, OSError):
                     self.rclone_pid = None
                     self.transfer_active = False
+                    return False
+            # Cross-platform fallback: kill(0) probes without sending a signal
+            try:
+                os.kill(pid, 0)
+                return True
             except (ProcessLookupError, OSError):
                 self.rclone_pid = None
                 self.transfer_active = False
-            return False
+                return False
 
     # ---- full log scanner (session detection + chart history) ----------------
 
