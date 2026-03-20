@@ -50,6 +50,10 @@
       <div style="margin-top: 16px; font-size: 0.75rem; color: var(--text-muted);">
         Supports Google Drive, OneDrive, Dropbox, S3, and more
       </div>
+      <div style="margin-top:16px;padding:10px 16px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:10px;font-size:0.75rem;color:var(--green);display:inline-flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Your files are safe. CloudHop only copies, never deletes or modifies your originals.
+      </div>
       <div id="welcomeRcloneCheck" style="margin-top:12px;font-size:0.75rem;text-align:center;"></div>
     </div>
   </div>
@@ -112,9 +116,9 @@
     </div>
     <div class="local-path-input" id="sourceOtherName">
       <div class="form-group" style="margin-top:16px;">
-        <label class="form-label" for="sourceOtherInput">Remote Name</label>
-        <input class="form-input" id="sourceOtherInput" type="text" placeholder="myremote">
-        <div class="form-hint">For cloud services not listed above. Enter the name of your cloud service (e.g. "backblaze", "wasabi", "pcloud").</div>
+        <label class="form-label" for="sourceOtherInput">Account Name</label>
+        <input class="form-input" id="sourceOtherInput" type="text" placeholder="mycloud">
+        <div class="form-hint">For cloud services not listed above. Enter a short name for your account (e.g. "backblaze", "wasabi", "pcloud").</div>
       </div>
     </div>
     <div class="btn-row">
@@ -180,9 +184,9 @@
     </div>
     <div class="local-path-input" id="destOtherName">
       <div class="form-group" style="margin-top:16px;">
-        <label class="form-label" for="destOtherInput">Remote Name</label>
-        <input class="form-input" id="destOtherInput" type="text" placeholder="myremote">
-        <div class="form-hint">For cloud services not listed above. Enter the name of your cloud service (e.g. "backblaze", "wasabi", "pcloud").</div>
+        <label class="form-label" for="destOtherInput">Account Name</label>
+        <input class="form-input" id="destOtherInput" type="text" placeholder="mycloud">
+        <div class="form-hint">For cloud services not listed above. Enter a short name for your account (e.g. "backblaze", "wasabi", "pcloud").</div>
       </div>
     </div>
     <div class="btn-row">
@@ -240,6 +244,15 @@
         <label class="form-label" for="bwLimit">Bandwidth Limit (optional)</label>
         <input class="form-input" id="bwLimit" type="text" placeholder="e.g. 10 (MB/s)">
         <div class="form-hint">Speed limit in MB/s. Leave empty for unlimited. Example: 10 = 10 MB/s</div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;margin-top:20px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="useFastList" checked style="width:18px;height:18px;">
+          <div>
+            <div class="form-label" style="margin-bottom:0;">Fast listing</div>
+            <div class="form-hint">Uses fewer API calls to scan cloud storage. Faster for large transfers. Disable if you get errors.</div>
+          </div>
+        </label>
       </div>
       <div class="form-group" style="margin-bottom:0;margin-top:20px;">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
@@ -305,7 +318,7 @@
   <!-- Step 5: Connect -->
   <div class="step" id="step5">
     <div class="wizard-title" style="font-size:1.5rem;">Connect Your Accounts</div>
-    <div class="wizard-subtitle">Authorize CloudHop to access your cloud storage.</div>
+    <div class="wizard-subtitle">Sign in to each cloud service so CloudHop can copy your files.</div>
     <div class="wizard-card" id="connectList">
       <!-- Filled dynamically -->
     </div>

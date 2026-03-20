@@ -58,9 +58,110 @@ def _setup_logging(cm_dir: str) -> None:
     logger.info("CloudHop server starting (log: %s)", log_file)
 
 
+def _cli_subcommand(cmd: str) -> bool:
+    """Handle CLI subcommands (status/pause/resume/history). Returns True if handled."""
+    import json
+    import urllib.request
+
+    port_range = range(8787, 8792)
+
+    def _api(path: str, method: str = "GET") -> dict:
+        for port in port_range:
+            try:
+                url = f"http://127.0.0.1:{port}{path}"
+                req = urllib.request.Request(url, method=method)
+                req.add_header("Host", f"localhost:{port}")
+                if method == "POST":
+                    # Get CSRF token from cookie first
+                    resp0 = urllib.request.urlopen(
+                        urllib.request.Request(
+                            f"http://127.0.0.1:{port}/api/status",
+                            headers={"Host": f"localhost:{port}"},
+                        ),
+                        timeout=3,
+                    )
+                    cookies = resp0.headers.get("Set-Cookie", "")
+                    token = ""
+                    for part in cookies.split(";"):
+                        if "csrf_token=" in part:
+                            token = part.split("csrf_token=")[1].strip()
+                    req.add_header("X-CSRF-Token", token)
+                    req.add_header("Content-Type", "application/json")
+                    req.data = b"{}"
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    return json.loads(resp.read())
+            except Exception:
+                continue
+        return {"error": "CloudHop server not running. Start it with: cloudhop"}
+
+    if cmd == "status":
+        d = _api("/api/status")
+        if "error" in d and "not running" in d.get("error", ""):
+            print("  CloudHop is not running.")
+            return True
+        pct = d.get("global_pct", 0)
+        xfer = d.get("global_transferred", "--")
+        total = d.get("global_total", "--")
+        speed = d.get("speed", "--")
+        eta = d.get("eta", "--")
+        running = d.get("rclone_running", False)
+        errors = d.get("errors", 0)
+        files_done = d.get("global_files_done", 0)
+        files_total = d.get("global_files_total", 0)
+        print()
+        print(f"  CloudHop {'Transferring' if running else 'Stopped'}")
+        print(f"  Progress: {pct}% ({xfer} / {total})")
+        print(f"  Files:    {files_done} / {files_total}")
+        print(f"  Speed:    {speed or '--'}")
+        print(f"  ETA:      {eta or '--'}")
+        print(f"  Errors:   {errors}")
+        print()
+        return True
+
+    if cmd == "pause":
+        d = _api("/api/pause", method="POST")
+        if d.get("ok"):
+            print(f"  {d.get('msg', 'Paused')}")
+        else:
+            print(f"  Error: {d.get('msg', d.get('error', 'Unknown'))}")
+        return True
+
+    if cmd == "resume":
+        d = _api("/api/resume", method="POST")
+        if d.get("ok"):
+            print(f"  {d.get('msg', 'Resumed')}")
+        else:
+            print(f"  Error: {d.get('msg', d.get('error', 'Unknown'))}")
+        return True
+
+    if cmd == "history":
+        d = _api("/api/history")
+        if isinstance(d, list):
+            if not d:
+                print("  No transfer history.")
+            else:
+                print()
+                for h in d:
+                    label = h.get("label", "Unknown")
+                    sessions = h.get("sessions", 0)
+                    print(f"  {label} ({sessions} sessions)")
+                print()
+        else:
+            print(f"  Error: {d.get('error', 'Unknown')}")
+        return True
+
+    return False
+
+
 def main() -> None:
     """Main entry point -- wizard mode (no args) or CLI mode (source dest [flags])."""
     args = sys.argv[1:]
+
+    # Handle CLI subcommands before initializing the full server
+    if len(args) == 1 and args[0] in ("status", "pause", "resume", "history"):
+        _cli_subcommand(args[0])
+        return
+
     manager = TransferManager()
     _setup_logging(manager.cm_dir)
     CloudHopHandler.manager = manager
@@ -128,6 +229,12 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
 
     # Start rclone if requested
     if start_rclone and manager.rclone_cmd:
+        # Save command and label to state so Resume works after server restart
+        with manager.state_lock:
+            if "rclone_cmd" not in manager.state:
+                manager.state["rclone_cmd"] = manager.rclone_cmd
+                manager.state["transfer_label"] = manager.transfer_label
+                manager.save_state()
         print("  Starting file transfer...")
         proc = subprocess.Popen(
             manager.rclone_cmd,

@@ -138,8 +138,8 @@ async function goTo(step) {
   if (step === 3) updateDestGrid();
   if (step === 5) buildConnectStep();
   if (step === 6) {
-    if (sourceProvider === destProvider && sourceProvider !== 'local') {
-      const proceed = await showConfirmModal('Source and destination are the same service. Two separate accounts will be set up (e.g. &ldquo;gdrive&rdquo; for source and &ldquo;gdrive_dest&rdquo; for destination). Continue?');
+    if (sourceProvider === destProvider && sourceProvider !== 'local' && sourceProvider !== 'icloud') {
+      const proceed = await showConfirmModal('Source and destination are the same service. Two separate accounts will be set up (e.g. "gdrive" for source and "gdrive_dest" for destination). Continue?');
       if (!proceed) return;
     }
     buildSummary();
@@ -164,7 +164,13 @@ async function goTo(step) {
     }
     document.getElementById('sourceLocalPath').classList.toggle('show', sourceProvider === 'local' || sourceProvider === 'icloud');
     document.getElementById('sourceOtherName').classList.toggle('show', sourceProvider === 'other');
-    document.getElementById('sourceNext').disabled = false;
+    if (sourceProvider === 'local' || sourceProvider === 'icloud') {
+      document.getElementById('sourceNext').disabled = !document.getElementById('sourcePathInput').value.trim();
+    } else if (sourceProvider === 'other') {
+      document.getElementById('sourceNext').disabled = !document.getElementById('sourceOtherInput').value.trim();
+    } else {
+      document.getElementById('sourceNext').disabled = false;
+    }
   }
   if (step === 3 && destProvider) {
     const dc = document.querySelector('#destGrid [data-provider="'+destProvider+'"]');
@@ -174,7 +180,13 @@ async function goTo(step) {
     }
     document.getElementById('destLocalPath').classList.toggle('show', destProvider === 'local' || destProvider === 'icloud');
     document.getElementById('destOtherName').classList.toggle('show', destProvider === 'other');
-    document.getElementById('destNext').disabled = false;
+    if (destProvider === 'local' || destProvider === 'icloud') {
+      document.getElementById('destNext').disabled = !document.getElementById('destPathInput').value.trim();
+    } else if (destProvider === 'other') {
+      document.getElementById('destNext').disabled = !document.getElementById('destOtherInput').value.trim();
+    } else {
+      document.getElementById('destNext').disabled = false;
+    }
   }
   if (step === 4 && selectedSpeed) {
     document.querySelectorAll('.speed-card').forEach(c => {
@@ -273,7 +285,7 @@ function selectSource(card) {
         document.getElementById('sourceNext').disabled = !input.value.trim();
       });
     }
-  } else if (sourceProvider === 'local') {
+  } else if (sourceProvider === 'local' || sourceProvider === 'icloud') {
     const input = document.getElementById('sourcePathInput');
     document.getElementById('sourceNext').disabled = !input.value.trim();
     if (!input.dataset.listening) {
@@ -317,7 +329,7 @@ function selectDest(card) {
         document.getElementById('destNext').disabled = !input.value.trim();
       });
     }
-  } else if (destProvider === 'local') {
+  } else if (destProvider === 'local' || destProvider === 'icloud') {
     const input = document.getElementById('destPathInput');
     document.getElementById('destNext').disabled = !input.value.trim();
     if (!input.dataset.listening) {
@@ -365,9 +377,9 @@ async function buildConnectStep() {
   const hasCred = credProviders.includes(sourceProvider) || credProviders.includes(destProvider);
   const hint = document.getElementById('connectHint');
   if (hasOAuth && hasCred) {
-    hint.innerHTML = 'Some services will open a browser for sign-in. Others will ask for credentials below.';
+    hint.innerHTML = 'Some services will open a browser window for sign-in. Others will ask for your username and password below.';
   } else if (hasOAuth) {
-    hint.innerHTML = 'A browser tab will open for authentication. Sign in to authorize CloudHop, then return here.';
+    hint.innerHTML = 'A browser window will open. Sign in to your account there, then come back to this page. CloudHop will detect the connection automatically.';
   } else if (hasCred) {
     hint.innerHTML = 'Enter your credentials below to connect your accounts.';
   } else {
@@ -399,10 +411,10 @@ async function buildConnectStep() {
   }
 
   const items = [];
-  if (sourceProvider && sourceProvider !== 'local' && sourceProvider !== 'other') {
+  if (sourceProvider && sourceProvider !== 'local' && sourceProvider !== 'icloud' && sourceProvider !== 'other') {
     items.push({provider: sourceProvider, name: sourceName, display: sourceDisplayName, role: 'source'});
   }
-  if (destProvider && destProvider !== 'local' && destProvider !== 'other') {
+  if (destProvider && destProvider !== 'local' && destProvider !== 'icloud' && destProvider !== 'other') {
     items.push({provider: destProvider, name: destName, display: destDisplayName, role: 'dest'});
   }
 
@@ -508,13 +520,14 @@ function checkAllConnected() {
   document.getElementById('connectNext').disabled = !allOk;
 }
 
-// Poll for remote connection (for OAuth flow)
-let pollInterval = null;
+// Poll for remote connection (for OAuth flow) - per-remote polling
+const activePolls = {};
 function startPolling(name, display, type) {
-  if (pollInterval) clearInterval(pollInterval);
+  // Clear any existing poll for this remote
+  if (activePolls[name]) { clearInterval(activePolls[name]); delete activePolls[name]; }
   const remoteName = name;
   const remoteType = type;
-  pollInterval = setInterval(async () => {
+  activePolls[name] = setInterval(async () => {
     try {
       const resp = await fetch('/api/wizard/check-remote', {
         method: 'POST',
@@ -523,8 +536,8 @@ function startPolling(name, display, type) {
       });
       const data = await resp.json();
       if (data.configured) {
-        clearInterval(pollInterval);
-        pollInterval = null;
+        clearInterval(activePolls[name]);
+        delete activePolls[name];
         const statusEl = document.getElementById('status-' + name);
         const actionEl = document.getElementById('action-' + name);
         if (statusEl) {
@@ -541,12 +554,16 @@ function startPolling(name, display, type) {
   }, 2000);
   // Timeout after 2 minutes
   setTimeout(() => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
-      const statusEl = document.querySelector(`[data-remote="${remoteName}"] .connect-status`);
-      if (statusEl && !statusEl.classList.contains('connected')) {
-        statusEl.innerHTML = '<span style="color:var(--orange);">Timed out.</span> <button onclick="connectRemote(\'' + remoteName.replace(/'/g, "\\'") + '\',\'' + remoteType.replace(/'/g, "\\'") + '\',\'' + display.replace(/'/g, "\\'") + '\')" style="color:var(--primary);background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">Try again</button>';
+    if (activePolls[name]) {
+      clearInterval(activePolls[name]);
+      delete activePolls[name];
+      const statusEl = document.getElementById('status-' + remoteName);
+      const actionEl = document.getElementById('action-' + remoteName);
+      if (statusEl && !statusEl.classList.contains('ok')) {
+        statusEl.innerHTML = '<span style="color:var(--orange);">Timed out.</span>';
+        if (actionEl) {
+          actionEl.innerHTML = '<button class="btn btn-primary btn-connect" onclick="connectRemote(\'' + remoteName.replace(/'/g, "\\'") + '\',\'' + remoteType.replace(/'/g, "\\'") + '\',\'' + display.replace(/'/g, "\\'") + '\')">Try again</button>';
+        }
       }
     }
   }, 120000);
@@ -561,6 +578,7 @@ function buildSummary() {
   const bwLimit = document.getElementById('bwLimit').value.trim();
   const speedLabels = {'4': 'Normal (4 files)', '8': 'Fast (8 files)', '16': 'Maximum (16 files)'};
   const useChecksum = document.getElementById('useChecksum').checked;
+  const useFastList = document.getElementById('useFastList').checked;
 
   let srcPath = getSourcePath();
   let dstPath = getDestPath();
@@ -587,6 +605,7 @@ function buildSummary() {
       <span class="summary-value">${esc(bwLimit)}</span>
     </div>` : ''}
     ${useChecksum ? `<div class="summary-row"><span class="summary-label">Checksum verification</span><span class="summary-value">Enabled</span></div>` : ''}
+    ${useFastList ? `<div class="summary-row"><span class="summary-label">Fast listing</span><span class="summary-value">Enabled</span></div>` : ''}
   `;
 
   // Add schedule info if enabled
@@ -618,7 +637,7 @@ function showWizardError(msg) {
 
 function getSourcePath() {
   const srcSub = document.getElementById('sourceSubfolder').value.trim();
-  if (sourceProvider === 'local') {
+  if (sourceProvider === 'local' || sourceProvider === 'icloud') {
     const p = document.getElementById('sourcePathInput').value.trim();
     if (!p) { const errEl = document.getElementById('sourcePathError'); errEl.textContent = 'Please enter a folder path.'; errEl.style.display = 'block'; return null; }
     document.getElementById('sourcePathError').style.display = 'none';
@@ -633,7 +652,7 @@ function getSourcePath() {
 
 function getDestPath() {
   const dstSub = document.getElementById('destSubfolder').value.trim();
-  if (destProvider === 'local') {
+  if (destProvider === 'local' || destProvider === 'icloud') {
     const p = document.getElementById('destPathInput').value.trim();
     if (!p) { const errEl = document.getElementById('destPathError'); errEl.textContent = 'Please enter a folder path.'; errEl.style.display = 'block'; return null; }
     document.getElementById('destPathError').style.display = 'none';
@@ -705,10 +724,11 @@ async function startTransfer() {
         dest: dst,
         transfers: selectedSpeed,
         excludes: excludeList,
-        source_type: sourceProvider,
-        dest_type: destProvider,
+        source_type: sourceProvider === 'icloud' ? 'local' : sourceProvider,
+        dest_type: destProvider === 'icloud' ? 'local' : destProvider,
         bw_limit: document.getElementById('bwLimit').value.trim(),
-        checksum: document.getElementById('useChecksum').checked
+        checksum: document.getElementById('useChecksum').checked,
+        fast_list: document.getElementById('useFastList').checked
       })
     });
     clearTimeout(safetyTimeout);

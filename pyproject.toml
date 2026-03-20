@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloudhop"
-version = "0.7.1"
+version = "0.8.0"
 description = "The easiest way to copy files between cloud storage services"
 readme = "README.md"
 license = {text = "MIT"}

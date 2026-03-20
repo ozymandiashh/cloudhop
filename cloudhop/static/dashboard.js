@@ -282,6 +282,7 @@ function setDisplay(id, val) { const el = $(id); if (el) el.style.display = val;
 function setWidth(id, val) { const el = $(id); if (el) el.style.width = val; }
 
 function playCompleteSound() {
+  if (_soundMuted) return;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 - pleasant chord
@@ -311,11 +312,11 @@ function showCompletionScreen(d) {
     const totalSize = d.global_transferred || '--';
     const totalTime = d.global_elapsed || '--';
     overlay.innerHTML = `
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:480px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:520px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);max-height:90vh;overflow-y:auto;">
             <div style="font-size:3rem;margin-bottom:16px;">&#10024;</div>
             <h2 style="font-size:1.5rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Transfer Complete!</h2>
             <p style="color:var(--text-secondary);margin-bottom:24px;">All your files have been copied successfully.</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;">
                 <div>
                     <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--text-primary);">${esc(totalSize)}</div>
                     <div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Transferred</div>
@@ -327,6 +328,20 @@ function showCompletionScreen(d) {
                 <div>
                     <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--text-primary);">${esc(totalTime)}</div>
                     <div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Duration</div>
+                </div>
+            </div>
+            <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:12px;padding:16px;margin-bottom:24px;">
+                <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">What's next?</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <button id="verifyBtn" onclick="runVerification()" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.08);color:var(--green);cursor:pointer;font-size:0.8rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Verify transfer integrity
+                    </button>
+                    <div id="verifyResult" style="display:none;font-size:0.75rem;padding:8px;border-radius:6px;"></div>
+                    <button onclick="exportReceipt()" style="padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;font-size:0.8rem;display:flex;align-items:center;justify-content:center;gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download transfer receipt
+                    </button>
                 </div>
             </div>
             <div style="display:flex;gap:12px;justify-content:center;margin-bottom:28px;">
@@ -347,11 +362,83 @@ function showCompletionScreen(d) {
     document.addEventListener('keydown', function escClose(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escClose); } });
 }
 
+async function runVerification() {
+    const btn = document.getElementById('verifyBtn');
+    const result = document.getElementById('verifyResult');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Verifying...';
+    result.style.display = 'none';
+    try {
+        const res = await fetch('/api/verify', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()}
+        });
+        const d = await res.json();
+        result.style.display = 'block';
+        if (d.ok && d.status === 'perfect') {
+            result.style.background = 'rgba(34,197,94,0.1)';
+            result.style.color = 'var(--green)';
+            result.textContent = d.msg;
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Verified!';
+            btn.style.color = 'var(--green)';
+        } else if (d.ok && d.status === 'differences') {
+            result.style.background = 'rgba(245,158,11,0.1)';
+            result.style.color = 'var(--orange)';
+            result.textContent = d.msg;
+            btn.disabled = false;
+            btn.innerHTML = 'Verify again';
+        } else {
+            result.style.background = 'rgba(239,68,68,0.1)';
+            result.style.color = 'var(--red)';
+            result.textContent = d.msg || 'Verification failed.';
+            btn.disabled = false;
+            btn.innerHTML = 'Retry verification';
+        }
+    } catch(e) {
+        result.style.display = 'block';
+        result.style.background = 'rgba(239,68,68,0.1)';
+        result.style.color = 'var(--red)';
+        result.textContent = 'Error: ' + e.message;
+        btn.disabled = false;
+        btn.innerHTML = 'Retry verification';
+    }
+}
+
+function exportReceipt() {
+    const lines = [
+        'CloudHop Transfer Receipt',
+        '========================',
+        '',
+        'Date: ' + new Date().toLocaleString(),
+        'Status: Complete',
+        '',
+        'Transferred: ' + (document.getElementById('bpTransferred')?.textContent || '--'),
+        'Total: ' + (document.getElementById('bpTotal')?.textContent || '--'),
+        'Files: ' + (document.getElementById('filesDone')?.textContent || '0') + ' / ' + (document.getElementById('filesTotal')?.textContent || '0'),
+        'Duration: ' + (document.getElementById('elapsed')?.textContent || '--'),
+        'Sessions: ' + (document.getElementById('sessionBadge')?.textContent || '--'),
+        '',
+        'Generated by CloudHop (https://github.com/husamsoboh-cyber/cloudhop)',
+    ];
+    const blob = new Blob([lines.join('\n')], {type: 'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'CloudHop-Receipt-' + new Date().toISOString().slice(0,10) + '.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
 async function refresh() {
   try {
-    const res = await fetch('/api/status');
-    if (!res.ok) return;
-    const d = await res.json();
+    let d;
+    if (_isDemo) {
+      d = getDemoData();
+    } else {
+      const res = await fetch('/api/status');
+      if (!res.ok) return;
+      d = await res.json();
+    }
     failCount = 0;
     document.querySelectorAll('.loading-pulse').forEach(el => el.classList.remove('loading-pulse'));
     setDisplay('connLost', 'none');
@@ -425,7 +512,17 @@ async function refresh() {
       updateButtons(false);
     } else {
       updateStatusDot('active');
-      document.getElementById('statusText').textContent = 'Transferring';
+      // Smart status: show what rclone is actually doing
+      const hasActiveFiles = d.active && d.active.length > 0;
+      const isChecking = d.checks_done > 0 && !hasActiveFiles;
+      const speedVal = parseSpeed(d.speed || '');
+      if (isChecking) {
+        document.getElementById('statusText').textContent = 'Scanning files...';
+      } else if (speedVal < 0.01 && d.listed > 0) {
+        document.getElementById('statusText').textContent = 'Listing files...';
+      } else {
+        document.getElementById('statusText').textContent = 'Transferring';
+      }
       updateButtons(true);
       if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = setInterval(refresh, 5000); }
     }
@@ -742,7 +839,9 @@ async function refresh() {
       container.innerHTML = d.daily_stats.map(ds => {
         const h = maxGib > 0 ? Math.max(4, (ds.gib / maxGib) * 100) : 4;
         const dayLabel = ds.day.slice(5);
-        const isToday = ds.day === new Date().toISOString().slice(0,10).replace(/\//g,'-');
+        const now = new Date();
+        const localToday = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+        const isToday = ds.day === localToday;
         const color = isToday ? 'var(--green)' : 'var(--primary)';
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
           <span style="font-size:0.65rem;color:var(--text-primary)">${esc(ds.gib + ' GiB')}</span>
@@ -900,6 +999,23 @@ function toggleTheme() {
   });
 })();
 
+// Sound mute toggle
+let _soundMuted = localStorage.getItem('cloudhop-muted') === 'true';
+function toggleMute() {
+  _soundMuted = !_soundMuted;
+  localStorage.setItem('cloudhop-muted', _soundMuted);
+  document.getElementById('muteIconOn').style.display = _soundMuted ? 'none' : '';
+  document.getElementById('muteIconOff').style.display = _soundMuted ? '' : 'none';
+  showToast(_soundMuted ? 'Sound off' : 'Sound on', 'var(--text-secondary)');
+}
+// Restore mute state on load
+if (_soundMuted) {
+  const onEl = document.getElementById('muteIconOn');
+  const offEl = document.getElementById('muteIconOff');
+  if (onEl) onEl.style.display = 'none';
+  if (offEl) offEl.style.display = '';
+}
+
 let _faviconCanvas = null;
 let _lastFaviconPct = -1;
 function updateFavicon(pct) {
@@ -934,16 +1050,33 @@ function toggleTimeline() {
   document.getElementById('tlToggle').innerHTML = tlCollapsed ? '&#9654;' : '&#9660;';
 }
 
-// Sound notification when transfer completes or errors appear
+// Sound notification when transfer completes, hits milestones, or errors appear
 let prevPct = 0;
 let prevErrors = -1;
+const _notifiedMilestones = new Set();
 function checkNotifications(d) {
   const pct = d.global_pct || 0;
+
+  // Milestone notifications (25%, 50%, 75%)
+  [25, 50, 75].forEach(milestone => {
+    if (pct >= milestone && prevPct < milestone && prevPct > 0 && !_notifiedMilestones.has(milestone)) {
+      _notifiedMilestones.add(milestone);
+      playNotifSound(600, 0.15);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('CloudHop - ' + milestone + '% Complete', {
+          body: d.global_transferred + ' transferred so far.'
+        });
+      }
+      showToast(milestone + '% complete!', 'var(--primary)');
+    }
+  });
+
+  // Completion notification
   if (pct >= 100 && prevPct < 100 && prevPct > 0) {
     playNotifSound(800, 0.3);
     setTimeout(() => playNotifSound(1000, 0.3), 200);
     setTimeout(() => playNotifSound(1200, 0.3), 400);
-    if (Notification.permission === 'granted') {
+    if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('CloudHop - Transfer Complete!', { body: 'All files have been transferred.' });
     }
   }
@@ -961,6 +1094,7 @@ function getAudioCtx() {
   return _audioCtx;
 }
 function playNotifSound(freq, dur) {
+  if (_soundMuted) return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -985,9 +1119,18 @@ async function showHistory() {
     html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">';
     html += '<h3 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;">Transfer History</h3>';
     data.forEach(h => {
-      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border);">';
-      html += '<div style="font-weight:600;color:var(--text-primary);font-size:0.85rem;">' + esc(h.label) + '</div>';
-      html += '<div style="font-size:0.7rem;color:var(--text-secondary);">' + h.sessions + ' session(s)</div>';
+      const hasCmd = h.cmd && h.cmd.length > 0;
+      const size = h.total_size || '--';
+      const files = h.total_files || 0;
+      const lastRun = h.last_run ? h.last_run.replace(/\//g, '-') : '';
+      html += '<div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;">';
+      html += '<div style="min-width:0;flex:1;"><div style="font-weight:600;color:var(--text-primary);font-size:0.85rem;">' + esc(h.label) + '</div>';
+      html += '<div style="font-size:0.7rem;color:var(--text-secondary);">' + esc(size) + ' &middot; ' + files.toLocaleString() + ' files &middot; ' + h.sessions + ' session(s)';
+      if (lastRun) html += ' &middot; ' + esc(lastRun);
+      html += '</div></div>';
+      if (hasCmd) {
+        html += '<button onclick="resumeFromHistory(\'' + esc(h.id) + '\')" style="padding:6px 14px;border-radius:8px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.08);color:var(--green);cursor:pointer;font-size:0.75rem;font-weight:600;white-space:nowrap;flex-shrink:0;">Resume</button>';
+      }
       html += '</div>';
     });
     html += '<button onclick="this.parentElement.parentElement.remove()" style="margin-top:16px;padding:10px 24px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-size:0.85rem;">Close</button>';
@@ -999,8 +1142,136 @@ async function showHistory() {
   } catch(e) { showToast('Could not load history.', 'var(--red)'); }
 }
 
+async function resumeFromHistory(id) {
+  if (!await showConfirmModal('Resume this transfer? Any current transfer will be replaced.')) return;
+  try {
+    const res = await fetch('/api/history/resume', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+      body: JSON.stringify({id: id})
+    });
+    const d = await res.json();
+    if (d.ok) {
+      showToast('Transfer resumed!', 'var(--green)');
+      const modal = document.querySelector('[data-history-modal]');
+      if (modal) modal.remove();
+      completionShown = false;
+      _notifiedMilestones.clear();
+      setTimeout(refresh, 2000);
+    } else {
+      showToast(d.msg || 'Failed to resume', 'var(--red)');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'var(--red)');
+  }
+}
+
+// Bandwidth limit dropdown handler
+(function() {
+  const sel = document.getElementById('bwLimit');
+  if (sel) {
+    sel.addEventListener('change', async function() {
+      const rate = this.value || 'off';
+      try {
+        const res = await fetch('/api/bwlimit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+          body: JSON.stringify({rate: rate})
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('Speed limit: ' + (rate === 'off' ? 'unlimited' : rate.replace('M', ' MB/s')), 'var(--green)');
+        } else {
+          showToast(d.msg || 'Failed to change speed', 'var(--red)');
+        }
+      } catch(e) {
+        showToast('Error: ' + e.message, 'var(--red)');
+      }
+    });
+  }
+})();
+
+// Demo mode: simulate a transfer in progress for preview purposes
+const _isDemo = new URLSearchParams(window.location.search).has('demo');
+let _demoPct = 0;
+let _demoInterval = null;
+
+function getDemoData() {
+  _demoPct = Math.min(_demoPct + 0.3 + Math.random() * 0.5, 100);
+  const spd = 15 + Math.random() * 30;
+  const transferred = _demoPct / 100 * 125 * 1024 * 1024 * 1024;
+  const total = 125 * 1024 * 1024 * 1024;
+  const files = Math.floor(_demoPct / 100 * 8420);
+  return {
+    global_pct: Math.round(_demoPct * 10) / 10,
+    global_transferred: (_demoPct / 100 * 125).toFixed(2) + ' GiB',
+    global_transferred_bytes: transferred,
+    global_total: '125.00 GiB',
+    global_total_bytes: total,
+    global_files_done: files,
+    global_files_total: 8420,
+    global_files_pct: Math.round(files / 8420 * 100 * 10) / 10,
+    global_elapsed: '2h 15m',
+    global_elapsed_sec: 8100,
+    session_elapsed: '45m 30s',
+    session_elapsed_sec: 2730,
+    session_num: 3,
+    session_transferred: '42.5 GiB',
+    session_total: '50.0 GiB',
+    session_pct: 85,
+    speed: spd.toFixed(1) + ' MiB/s',
+    eta: Math.round((100 - _demoPct) / 0.4 * 5) + 's',
+    errors: 0,
+    checks_done: 0,
+    checks_total: 0,
+    listed: files * 2,
+    finished: false,
+    rclone_running: true,
+    transfer_label: 'OneDrive -> Google Drive',
+    active: [
+      {name: 'Documents/Report-2026.pdf', pct: 78, size: '24.5MiB', speed: '12.3MiB/s', eta: '2s'},
+      {name: 'Photos/vacation-2025.zip', pct: 34, size: '1.2GiB', speed: '18.7MiB/s', eta: '45s'},
+      {name: 'Projects/backup.tar.gz', pct: 91, size: '890MiB', speed: '15.1MiB/s', eta: '5s'},
+    ],
+    recent_files: [
+      {name: 'music/playlist.m3u', time: '14:32:01'},
+      {name: 'documents/notes.txt', time: '14:31:58'},
+      {name: 'photos/sunset.jpg', time: '14:31:55'},
+    ],
+    error_messages: [],
+    speed_history: Array.from({length: 100}, () => 10 + Math.random() * 25),
+    pct_history: Array.from({length: 100}, (_, i) => i),
+    all_file_types: {pdf: 120, jpg: 890, zip: 45, docx: 67, mp4: 23, txt: 340, png: 210},
+    total_copied_count: files,
+    sessions: [
+      {num: 1, start: '2026/03/19 22:00:00', end: '2026/03/20 01:30:00', transferred: '45.2 GiB', files: 3200, elapsed: '3h 30m', elapsed_sec: 12600},
+      {num: 2, start: '2026/03/20 08:00:00', end: '2026/03/20 10:15:00', transferred: '38.1 GiB', files: 2800, elapsed: '2h 15m', elapsed_sec: 8100},
+      {num: 3, start: '2026/03/20 14:00:00', end: '', transferred: '42.5 GiB', files: 2420, elapsed: '45m', elapsed_sec: 2700},
+    ],
+    downtimes: [
+      {after_session: 1, duration: '6h 30m', duration_sec: 23400, from: '2026/03/20 01:30:00', to: '2026/03/20 08:00:00'},
+      {after_session: 2, duration: '3h 45m', duration_sec: 13500, from: '2026/03/20 10:15:00', to: '2026/03/20 14:00:00'},
+    ],
+    wall_clock: '16h 45m',
+    uptime_pct: 51.2,
+    daily_stats: [
+      {day: '2026-03-19', bytes: 45.2 * 1024**3, gib: 45.2},
+      {day: '2026-03-20', bytes: 80.6 * 1024**3, gib: 80.6},
+    ],
+  };
+}
+
+if (_isDemo) {
+  // Show demo banner
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,var(--primary),var(--secondary));color:#fff;text-align:center;padding:8px;font-size:0.8rem;font-weight:600;z-index:200;';
+  banner.innerHTML = 'DEMO MODE - This is a simulated transfer preview. <a href="/dashboard" style="color:#fff;text-decoration:underline;margin-left:8px;">Exit demo</a>';
+  document.body.prepend(banner);
+  document.body.style.paddingTop = '36px';
+}
+
 refresh();
-let refreshInterval = setInterval(refresh, 5000);
+let refreshInterval = setInterval(refresh, _isDemo ? 2000 : 5000);
 window.addEventListener('resize', () => {
   if (drawAreaChart._cache) drawAreaChart._cache = {};
   drawAreaChart('speedChart', speedHistory, '#6366f1', 'speedGrad', fmtSpeedShort, true);

@@ -220,18 +220,33 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 schedule["in_window"] = True
             self._send_json(schedule)
         elif self.path == "/api/history":
+            from .utils import fmt_bytes
+
             history = []
             for f in sorted(os.listdir(_CM_DIR)):
                 if f.endswith("_state.json"):
                     try:
                         with open(os.path.join(_CM_DIR, f)) as sf:
                             s = json.load(sf)
+                            sessions = s.get("sessions", [])
+                            total_bytes = s.get("original_total_bytes", 0) or s.get(
+                                "cumulative_transferred_bytes", 0
+                            )
+                            total_files = s.get("original_total_files", 0) or s.get(
+                                "cumulative_files_done", 0
+                            )
+                            last_session = sessions[-1] if sessions else {}
                             history.append(
                                 {
                                     "id": f.replace("cloudhop_", "").replace("_state.json", ""),
                                     "label": s.get("transfer_label", TRANSFER_LABEL),
-                                    "sessions": len(s.get("sessions", [])),
+                                    "sessions": len(sessions),
                                     "cmd": s.get("rclone_cmd", []),
+                                    "total_size": fmt_bytes(total_bytes),
+                                    "total_files": total_files,
+                                    "last_run": last_session.get(
+                                        "end", last_session.get("start", "")
+                                    ),
                                 }
                             )
                     except Exception:
@@ -270,6 +285,8 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             self._send_json(self.manager.pause())
         elif self.path == "/api/resume":
             self._send_json(self.manager.resume())
+        elif self.path == "/api/verify":
+            self._send_json(self.manager.verify_transfer())
         elif self.path == "/api/wizard/check-rclone":
             path = find_rclone()
             if path:
@@ -308,6 +325,40 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 return
             name = body.get("name", "")
             self._send_json({"configured": remote_exists(name)})
+        elif self.path == "/api/wizard/browse":
+            body = self._read_body()
+            if body is None:
+                self._send_json({"ok": False, "msg": "Invalid request"}, 400)
+                return
+            source = body.get("path", "")
+            if not validate_rclone_input(source, "path"):
+                self._send_json({"ok": False, "msg": "Invalid path"}, 400)
+                return
+            try:
+                result = subprocess.run(
+                    ["rclone", "lsjson", source, "--dirs-only", "--no-modtime"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                if result.returncode == 0:
+                    import json as _json
+
+                    items = _json.loads(result.stdout)
+                    folders = sorted(
+                        [
+                            {"name": item["Name"], "path": item.get("Path", item["Name"])}
+                            for item in items
+                        ],
+                        key=lambda x: x["name"].lower(),
+                    )
+                    self._send_json({"ok": True, "folders": folders[:200]})
+                else:
+                    self._send_json({"ok": False, "msg": "Could not list folders"})
+            except subprocess.TimeoutExpired:
+                self._send_json({"ok": False, "msg": "Folder listing timed out"})
+            except Exception as e:
+                self._send_json({"ok": False, "msg": str(e)})
         elif self.path == "/api/wizard/preview":
             body = self._read_body()
             if body is not None:
@@ -351,7 +402,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
 
             start_time = body.get("start_time", "22:00")
             end_time = body.get("end_time", "06:00")
-            time_re = re.compile(r"^\d{2}:\d{2}$")
+            time_re = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
             if not time_re.match(start_time) or not time_re.match(end_time):
                 self._send_json({"ok": False, "msg": "Invalid time format (use HH:MM)"}, 400)
                 return
@@ -397,8 +448,47 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             if not limit:
                 self._send_json({"ok": False, "msg": "Missing rate"}, 400)
                 return
+            if not validate_rclone_input(limit, "rate"):
+                self._send_json({"ok": False, "msg": "Invalid rate"}, 400)
+                return
             result = self.manager.set_bandwidth(limit)
             self._send_json(result)
+        elif self.path == "/api/history/resume":
+            body = self._read_body()
+            if body is None:
+                self._send_json({"ok": False, "msg": "Invalid request"}, 400)
+                return
+            transfer_id = body.get("id", "")
+            if not transfer_id or not validate_rclone_input(transfer_id, "id"):
+                self._send_json({"ok": False, "msg": "Invalid transfer ID"}, 400)
+                return
+            state_file = os.path.join(_CM_DIR, f"cloudhop_{transfer_id}_state.json")
+            # Prevent directory traversal
+            if not os.path.realpath(state_file).startswith(os.path.realpath(_CM_DIR)):
+                self._send_json({"ok": False, "msg": "Invalid transfer ID"}, 400)
+                return
+            if not os.path.exists(state_file):
+                self._send_json({"ok": False, "msg": "Transfer not found"}, 404)
+                return
+            try:
+                with open(state_file) as sf:
+                    saved = json.load(sf)
+                cmd = saved.get("rclone_cmd", [])
+                if not cmd:
+                    self._send_json({"ok": False, "msg": "No command saved for this transfer"})
+                    return
+                # Switch manager to this transfer
+                self.manager.state_file = state_file
+                log_file = os.path.join(_CM_DIR, f"cloudhop_{transfer_id}.log")
+                self.manager.log_file = log_file
+                self.manager.rclone_cmd = cmd
+                self.manager.transfer_label = saved.get("transfer_label", TRANSFER_LABEL)
+                self.manager.state = saved
+                result = self.manager.resume()
+                self._send_json(result)
+            except Exception as e:
+                logger.error("History resume error: %s", e)
+                self._send_json({"ok": False, "msg": "Failed to resume transfer"})
         else:
             self._send_404()
 

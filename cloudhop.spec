@@ -20,7 +20,7 @@ RCLONE_BIN = next((r for r in rclone_bins if os.path.exists(r)), 'rclone')
 
 a = Analysis(
     ['cloudhop_main.py'],
-    pathex=['/tmp/cloudmirror'],
+    pathex=[],
     binaries=[
         (RCLONE_BIN, '.'),          # rclone binary -> root of _MEIPASS
     ],
@@ -76,8 +76,8 @@ app = BUNDLE(
     info_plist={
         'CFBundleName': 'CloudHop',
         'CFBundleDisplayName': 'CloudHop',
-        'CFBundleVersion': '0.6.0',
-        'CFBundleShortVersionString': '0.6.0',
+        'CFBundleVersion': '0.8.0',
+        'CFBundleShortVersionString': '0.8.0',
         'CFBundleInfoDictionaryVersion': '6.0',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '10.15',

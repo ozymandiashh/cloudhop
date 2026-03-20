@@ -1321,6 +1321,51 @@ class TransferManager:
             logger.error("Bandwidth change error: %s", e)
             return {"ok": False, "msg": str(e)}
 
+    def verify_transfer(self) -> Dict[str, Any]:
+        """Run rclone check to verify source matches destination."""
+        if self.is_rclone_running():
+            return {"ok": False, "msg": "Transfer still running. Wait for it to finish."}
+        cmd = self.rclone_cmd or self.state.get("rclone_cmd", [])
+        if len(cmd) < 4:
+            return {"ok": False, "msg": "No transfer to verify."}
+        source = cmd[2]
+        dest = cmd[3]
+        # Build check command with same excludes
+        check_cmd = ["rclone", "check", source, dest, "--one-way"]
+        for arg in cmd[4:]:
+            if arg.startswith("--exclude="):
+                check_cmd.append(arg)
+        try:
+            result = subprocess.run(
+                check_cmd,
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+            output = result.stdout + result.stderr
+            # Count differences
+            diff_lines = [
+                ln for ln in output.split("\n") if "ERROR" in ln and "not in" in ln.lower()
+            ]
+            if result.returncode == 0 and not diff_lines:
+                return {
+                    "ok": True,
+                    "status": "perfect",
+                    "msg": "All files verified. Source and destination match perfectly.",
+                    "differences": 0,
+                }
+            return {
+                "ok": True,
+                "status": "differences",
+                "msg": f"Found {len(diff_lines)} difference(s). Some files may not have transferred.",
+                "differences": len(diff_lines),
+                "details": diff_lines[:20],
+            }
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "msg": "Verification timed out. Source may be very large."}
+        except Exception as e:
+            return {"ok": False, "msg": f"Verification failed: {str(e)}"}
+
     # ---- start_transfer ------------------------------------------------------
 
     def start_transfer(self, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -1406,10 +1451,20 @@ class TransferManager:
                 self.rclone_cmd.append(f"--exclude={excl}/**")
 
         if bw_limit and validate_rclone_input(bw_limit, "bw_limit"):
-            self.rclone_cmd.append(f"--bwlimit={bw_limit}")
+            # If user entered a bare number (e.g. "10"), append "M" for MB/s
+            bw_val = bw_limit.strip()
+            try:
+                float(bw_val)
+                bw_val = bw_val + "M"
+            except ValueError:
+                pass
+            self.rclone_cmd.append(f"--bwlimit={bw_val}")
 
         if body.get("checksum"):
             self.rclone_cmd.append("--checksum")
+
+        if body.get("fast_list", True):
+            self.rclone_cmd.append("--fast-list")
 
         # Save RCLONE_CMD to state but strip credential flags
         safe_cmd = [
@@ -1590,6 +1645,55 @@ class TransferManager:
         except Exception as e:
             return {"ok": False, "msg": _sanitize_rclone_error(str(e))}
 
+    # ---- battery check (macOS) -----------------------------------------------
+
+    def _is_on_battery(self) -> bool:
+        """Return True if running on battery power (macOS only)."""
+        if platform.system() != "Darwin":
+            return False
+        try:
+            result = subprocess.run(
+                ["pmset", "-g", "batt"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return "'Battery Power'" in result.stdout
+        except Exception:
+            return False
+
+    def _check_battery(self) -> None:
+        """Auto-pause on battery, auto-resume on AC power."""
+        with self.state_lock:
+            battery_pause = self.state.get("pause_on_battery", False)
+        if not battery_pause:
+            return
+        on_battery = self._is_on_battery()
+        if on_battery and self.is_rclone_running():
+            with self.state_lock:
+                self.state["_battery_paused"] = True
+            self.pause()
+            try:
+                from .notify import notify
+
+                notify("CloudHop", "Transfer paused (running on battery)")
+            except Exception:
+                pass
+        elif not on_battery and not self.is_rclone_running() and self.rclone_cmd:
+            # Only resume if we paused due to battery (not user-initiated pause)
+            with self.state_lock:
+                was_battery = self.state.get("_battery_paused", False)
+            if was_battery:
+                with self.state_lock:
+                    self.state["_battery_paused"] = False
+                self.resume()
+                try:
+                    from .notify import notify
+
+                    notify("CloudHop", "Transfer resumed (AC power connected)")
+                except Exception:
+                    pass
+
     # ---- background scanner --------------------------------------------------
 
     def background_scanner(self) -> None:
@@ -1602,6 +1706,7 @@ class TransferManager:
             try:
                 self.scan_full_log()
                 self._check_schedule()
+                self._check_battery()
             except Exception as e:
                 print(f"Scanner error: {e}")
             time.sleep(SCANNER_INTERVAL_SEC)

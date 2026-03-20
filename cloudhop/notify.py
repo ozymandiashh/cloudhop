@@ -9,11 +9,14 @@ def notify(title: str, message: str) -> None:
     try:
         system = platform.system()
         if system == "Darwin":
+            # Escape backslashes and quotes for AppleScript string literals
+            safe_title = title.replace("\\", "\\\\").replace('"', '\\"')
+            safe_message = message.replace("\\", "\\\\").replace('"', '\\"')
             subprocess.run(
                 [
                     "osascript",
                     "-e",
-                    f'display notification "{message}" with title "{title}"',
+                    f'display notification "{safe_message}" with title "{safe_title}"',
                 ],
                 capture_output=True,
                 timeout=5,
