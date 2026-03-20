@@ -768,3 +768,118 @@ async function startTransfer() {
     showWizardError('Error starting transfer. Please check the console.');
   }
 }
+
+// Exclude folder picker
+async function browseExcludes() {
+  const container = document.getElementById('excludeBrowser');
+  if (!container) return;
+
+  let basePath;
+  if (sourceProvider === 'local' || sourceProvider === 'icloud') {
+    basePath = document.getElementById('sourcePathInput').value.trim();
+  } else {
+    basePath = sourceName + ':';
+  }
+  if (!basePath) {
+    container.style.display = 'block';
+    container.innerHTML = '<div style="padding:8px;color:var(--text-muted);font-size:0.8rem;">Select a source first (go back to step 2).</div>';
+    return;
+  }
+
+  container.style.display = 'block';
+  container.innerHTML = '<div style="padding:8px;color:var(--text-dim);font-size:0.8rem;display:flex;align-items:center;gap:6px;"><span class="spinner"></span> Loading folders...</div>';
+
+  try {
+    const resp = await fetch('/api/wizard/browse', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+      body: JSON.stringify({path: basePath})
+    });
+    const data = await resp.json();
+    if (data.ok && data.folders && data.folders.length > 0) {
+      const current = document.getElementById('excludePatterns').value.split(',').map(s => s.trim()).filter(Boolean);
+      let html = '<div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:6px;">Check folders to exclude:</div>';
+      data.folders.forEach(f => {
+        const checked = current.includes(f.name) ? ' checked' : '';
+        html += '<label style="display:flex;align-items:center;gap:8px;padding:4px 6px;cursor:pointer;font-size:0.8rem;color:var(--text);border-radius:4px;" onmouseover="this.style.background=\'var(--card-hover)\'" onmouseout="this.style.background=\'transparent\'">';
+        html += '<input type="checkbox" data-exclude="' + esc(f.name) + '" onchange="updateExcludePatterns()" style="accent-color:var(--blue);"' + checked + '>';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--text-dim)" opacity="0.5"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>';
+        html += esc(f.name) + '</label>';
+      });
+      container.innerHTML = html;
+    } else if (data.ok && data.folders && data.folders.length === 0) {
+      container.innerHTML = '<div style="padding:8px;color:var(--text-muted);font-size:0.8rem;">No folders found at source root.</div>';
+    } else {
+      container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">' + esc(data.msg || 'Could not load folders') + '</div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">Error loading folders.</div>';
+  }
+}
+
+function updateExcludePatterns() {
+  const checks = document.querySelectorAll('#excludeBrowser input[data-exclude]:checked');
+  const names = Array.from(checks).map(cb => cb.dataset.exclude);
+  document.getElementById('excludePatterns').value = names.join(', ');
+}
+
+// Folder browser for selective copy
+async function browseSource(subpath) {
+  const container = document.getElementById('browseFolders');
+  const btn = document.getElementById('browseSourceBtn');
+  if (!container) return;
+
+  // Build the source path to browse
+  let basePath;
+  if (sourceProvider === 'local' || sourceProvider === 'icloud') {
+    basePath = document.getElementById('sourcePathInput').value.trim();
+  } else {
+    basePath = sourceName + ':';
+  }
+  const browsePath = subpath ? basePath + (basePath.endsWith(':') ? '' : '/') + subpath : basePath;
+
+  if (!basePath) {
+    container.style.display = 'block';
+    container.innerHTML = '<div style="padding:8px;color:var(--text-muted);font-size:0.8rem;">Select a source first.</div>';
+    return;
+  }
+
+  container.style.display = 'block';
+  if (!subpath) container.innerHTML = '<div style="padding:8px;color:var(--text-dim);font-size:0.8rem;display:flex;align-items:center;gap:6px;"><span class="spinner"></span> Loading folders...</div>';
+
+  try {
+    const resp = await fetch('/api/wizard/browse', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+      body: JSON.stringify({path: browsePath})
+    });
+    const data = await resp.json();
+    if (data.ok && data.folders) {
+      if (data.folders.length === 0) {
+        container.innerHTML = '<div style="padding:8px;color:var(--text-muted);font-size:0.8rem;">No subfolders found.' + (subpath ? ' <span style="color:var(--blue);cursor:pointer;" onclick="browseSource()">Back to root</span>' : '') + '</div>';
+        return;
+      }
+      let html = '';
+      if (subpath) {
+        // Add back button
+        const parent = subpath.includes('/') ? subpath.substring(0, subpath.lastIndexOf('/')) : '';
+        html += '<div style="padding:6px 8px;cursor:pointer;font-size:0.8rem;color:var(--blue);display:flex;align-items:center;gap:4px;" onclick="browseSource(' + (parent ? '\'' + esc(parent).replace(/'/g, "\\'") + '\'' : '') + ')">';
+        html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Back</div>';
+      }
+      data.folders.forEach(f => {
+        const fullPath = subpath ? subpath + '/' + f.name : f.name;
+        html += '<div style="padding:6px 8px;cursor:pointer;font-size:0.8rem;color:var(--text);border-radius:6px;display:flex;align-items:center;gap:6px;justify-content:space-between;" onmouseover="this.style.background=\'var(--card-hover)\'" onmouseout="this.style.background=\'transparent\'">';
+        html += '<span onclick="browseSource(\'' + esc(fullPath).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--blue)" opacity="0.7"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>';
+        html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span></span>';
+        html += '<button onclick="event.stopPropagation();document.getElementById(\'sourceSubfolder\').value=\'' + esc(fullPath).replace(/'/g, "\\'") + '\'" style="padding:2px 8px;border-radius:4px;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);cursor:pointer;font-size:0.7rem;flex-shrink:0;">Select</button>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    } else {
+      container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">' + esc(data.msg || 'Could not load folders') + '</div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">Error loading folders.</div>';
+  }
+}

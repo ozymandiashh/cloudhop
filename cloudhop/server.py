@@ -331,7 +331,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json({"ok": False, "msg": "Invalid request"}, 400)
                 return
             source = body.get("path", "")
-            if not validate_rclone_input(source, "path"):
+            if not source or not validate_rclone_input(source, "path"):
                 self._send_json({"ok": False, "msg": "Invalid path"}, 400)
                 return
             try:
@@ -342,9 +342,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     timeout=30,
                 )
                 if result.returncode == 0:
-                    import json as _json
-
-                    items = _json.loads(result.stdout)
+                    items = json.loads(result.stdout)
                     folders = sorted(
                         [
                             {"name": item["Name"], "path": item.get("Path", item["Name"])}

@@ -72,13 +72,13 @@ def _cli_subcommand(cmd: str) -> bool:
                 req = urllib.request.Request(url, method=method)
                 req.add_header("Host", f"localhost:{port}")
                 if method == "POST":
-                    # Get CSRF token from cookie first
+                    # Get CSRF token from an HTML page (JSON endpoints don't set cookies)
                     resp0 = urllib.request.urlopen(
                         urllib.request.Request(
-                            f"http://127.0.0.1:{port}/api/status",
+                            f"http://127.0.0.1:{port}/dashboard",
                             headers={"Host": f"localhost:{port}"},
                         ),
-                        timeout=3,
+                        timeout=5,
                     )
                     cookies = resp0.headers.get("Set-Cookie", "")
                     token = ""

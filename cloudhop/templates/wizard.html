@@ -202,8 +202,12 @@
     <div class="wizard-card">
       <div class="form-group">
         <label class="form-label" for="sourceSubfolder">Source Subfolder (optional)</label>
-        <input class="form-input" id="sourceSubfolder" type="text" placeholder="e.g. Documents/Work">
-        <div class="form-hint">Leave empty to copy all your files</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" id="sourceSubfolder" type="text" placeholder="e.g. Documents/Work" style="flex:1;">
+          <button type="button" class="btn btn-secondary" id="browseSourceBtn" onclick="browseSource()" style="padding:12px 16px;border-radius:10px;font-size:0.8rem;white-space:nowrap;">Browse</button>
+        </div>
+        <div class="form-hint">Leave empty to copy all your files. Use Browse to pick a folder.</div>
+        <div id="browseFolders" style="display:none;margin-top:12px;max-height:240px;overflow-y:auto;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:8px;"></div>
       </div>
       <div class="form-group">
         <label class="form-label" for="destSubfolder">Destination Subfolder (optional)</label>
@@ -236,9 +240,13 @@
 </div>
 <div class="advanced-content" id="advancedContent">
       <div class="form-group">
-        <label class="form-label" for="excludePatterns">Exclude Patterns (optional)</label>
-        <input class="form-input" id="excludePatterns" type="text" placeholder="Trash, .Trash, Personal Vault">
-        <div class="form-hint">Comma-separated folder names to skip</div>
+        <label class="form-label" for="excludePatterns">Exclude Folders (optional)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" id="excludePatterns" type="text" placeholder="Trash, .Trash, Personal Vault" style="flex:1;">
+          <button type="button" class="btn btn-secondary" onclick="browseExcludes()" style="padding:12px 16px;border-radius:10px;font-size:0.8rem;white-space:nowrap;">Pick</button>
+        </div>
+        <div class="form-hint">Comma-separated folder names to skip. Use Pick to browse and select.</div>
+        <div id="excludeBrowser" style="display:none;margin-top:12px;max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:8px;"></div>
       </div>
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label" for="bwLimit">Bandwidth Limit (optional)</label>
