@@ -459,11 +459,18 @@ async function buildConnectStep() {
     existingRemotes = data.remotes || [];
     if (data.home_dir) window._homeDir = data.home_dir;
     if (!data.rclone_installed) {
-      statusEl.innerHTML = '<span style="color:var(--orange)">Installing required components...</span>';
-      const installResp = await fetch('/api/wizard/check-rclone', {method:'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()}});
+      statusEl.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div><span style="color:var(--orange)">Installing rclone...</span>';
+      const installResp = await fetch('/api/wizard/install-rclone', {method:'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()}});
+      if (!installResp.ok) {
+        const errText = await installResp.text();
+        console.error('rclone install HTTP error:', installResp.status, errText);
+        statusEl.innerHTML = '<span style="color:var(--red)">Setup failed. <a href="https://rclone.org/install/" target="_blank" style="color:var(--red);text-decoration:underline;">Install rclone manually</a></span>';
+        return;
+      }
       const installData = await installResp.json();
       if (!installData.ok) {
-        statusEl.innerHTML = '<span style="color:var(--red)">Setup failed. Please visit rclone.org/install for manual setup.</span>';
+        console.error('rclone install failed:', installData.msg);
+        statusEl.innerHTML = '<span style="color:var(--red)">' + esc(installData.msg || 'Setup failed.') + ' <a href="https://rclone.org/install/" target="_blank" style="color:var(--red);text-decoration:underline;">Install manually</a></span>';
         return;
       }
       statusEl.innerHTML = '<span style="color:var(--green)">Setup complete!</span>';
@@ -780,6 +787,8 @@ async function startTransfer() {
     const src = getSourcePath();
     const dst = getDestPath();
     if (!src || !dst) {
+      console.error('startTransfer: missing paths, src=' + src + ' dst=' + dst);
+      showWizardError('Please select both source and destination folders.');
       clearTimeout(safetyTimeout);
       btn.disabled = false;
       btn.textContent = 'Start Transfer';
@@ -801,6 +810,11 @@ async function startTransfer() {
       })
     });
     clearTimeout(safetyTimeout);
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('startTransfer: HTTP error', resp.status, errText);
+      throw new Error('HTTP ' + resp.status + ': ' + errText);
+    }
     const data = await resp.json();
     if (data.ok) {
       // Save schedule if enabled
@@ -826,17 +840,28 @@ async function startTransfer() {
       // Redirect to dashboard
       window.location.href = '/dashboard';
     } else {
+      console.error('startTransfer: server returned error:', data.msg);
       btn.disabled = false;
       btn.textContent = 'Start Transfer';
       showWizardError('Error: ' + (data.msg || 'Failed to start transfer'));
     }
   } catch(e) {
+    console.error('startTransfer: exception:', e);
     clearTimeout(safetyTimeout);
     btn.disabled = false;
     btn.textContent = 'Start Transfer';
-    showWizardError('Error starting transfer. Please check the console.');
+    showWizardError('Error starting transfer: ' + (e.message || 'Unknown error'));
   }
 }
+
+// Backup event listener for Start Transfer button (in case onclick is overwritten)
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('startBtn');
+  if (btn && !btn._listenerAdded) {
+    btn.addEventListener('click', startTransfer);
+    btn._listenerAdded = true;
+  }
+});
 
 // Exclude folder picker
 async function browseExcludes() {

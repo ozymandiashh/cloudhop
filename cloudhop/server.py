@@ -12,7 +12,8 @@ GET  /static/<file>           Serves CSS/JS from the package ``static/`` directo
 
 POST /api/pause               Kill the rclone process (pause = kill; resume = restart)
 POST /api/resume              Restart rclone using the last saved command
-POST /api/wizard/check-rclone Install rclone if missing
+POST /api/wizard/check-rclone Check whether rclone is installed
+POST /api/wizard/install-rclone Install rclone non-interactively if missing
 POST /api/wizard/configure-remote  Create an rclone remote (OAuth or credentials)
 POST /api/wizard/check-remote      Poll whether a remote is now configured (OAuth flow)
 POST /api/wizard/preview      Run ``rclone size`` to estimate transfer scope
@@ -421,6 +422,125 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     {
                         "ok": False,
                         "msg": "rclone not found. Please install from https://rclone.org/install/",
+                    }
+                )
+        elif self.path == "/api/wizard/install-rclone":
+            # Check if already installed
+            path = find_rclone()
+            if path:
+                logger.info("rclone already installed at %s", path)
+                self._send_json({"ok": True, "path": path})
+                return
+            import platform as _platform
+            import shutil
+            import tempfile
+
+            system = _platform.system().lower()
+            logger.info("Attempting to install rclone on %s", system)
+
+            if system == "windows":
+                logger.error("Automatic rclone installation not supported on Windows")
+                self._send_json(
+                    {
+                        "ok": False,
+                        "msg": "Please install rclone manually from https://rclone.org/downloads/",
+                    }
+                )
+                return
+
+            try:
+                if system == "darwin" and shutil.which("brew"):
+                    logger.info("Installing rclone via Homebrew")
+                    result = subprocess.run(
+                        ["brew", "install", "rclone"],
+                        capture_output=True,
+                        text=True,
+                        timeout=120,
+                    )
+                    if result.returncode == 0:
+                        path = find_rclone()
+                        if path:
+                            logger.info("rclone installed via Homebrew at %s", path)
+                            self._send_json({"ok": True, "path": path})
+                            return
+                    logger.warning(
+                        "Homebrew install failed (rc=%d), trying curl method",
+                        result.returncode,
+                    )
+
+                # Download install script to temp dir, then execute it
+                script_path = os.path.join(tempfile.gettempdir(), "rclone_install.sh")
+                logger.info("Downloading rclone install script to %s", script_path)
+                dl_result = subprocess.run(
+                    ["curl", "-fsSL", "-o", script_path, "https://rclone.org/install.sh"],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                if dl_result.returncode != 0:
+                    logger.error("Failed to download rclone install script: %s", dl_result.stderr)
+                    self._send_json(
+                        {
+                            "ok": False,
+                            "msg": "Failed to download installer. Please install manually from https://rclone.org/install/",
+                        }
+                    )
+                    return
+
+                os.chmod(script_path, 0o755)
+
+                # Linux uses sudo if available; macOS curl fallback runs without sudo
+                if system == "linux" and shutil.which("sudo"):
+                    install_cmd = ["sudo", "bash", script_path]
+                else:
+                    install_cmd = ["bash", script_path]
+
+                logger.info("Running rclone install script: %s", install_cmd)
+                install_result = subprocess.run(
+                    install_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+
+                # Clean up downloaded script
+                try:
+                    os.unlink(script_path)
+                except OSError:
+                    pass
+
+                if install_result.returncode == 0:
+                    path = find_rclone()
+                    if path:
+                        logger.info("rclone installed successfully at %s", path)
+                        self._send_json({"ok": True, "path": path})
+                        return
+
+                logger.error(
+                    "rclone install script failed (rc=%d): %s",
+                    install_result.returncode,
+                    install_result.stderr,
+                )
+                self._send_json(
+                    {
+                        "ok": False,
+                        "msg": "Installation failed. Please install manually from https://rclone.org/install/",
+                    }
+                )
+            except subprocess.TimeoutExpired:
+                logger.error("rclone installation timed out after 120 seconds")
+                self._send_json(
+                    {
+                        "ok": False,
+                        "msg": "Installation timed out. Please install manually from https://rclone.org/install/",
+                    }
+                )
+            except Exception as e:
+                logger.error("rclone installation error: %s", e)
+                self._send_json(
+                    {
+                        "ok": False,
+                        "msg": "Installation failed. Please install manually from https://rclone.org/install/",
                     }
                 )
         elif self.path == "/api/wizard/configure-remote":

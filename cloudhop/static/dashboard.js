@@ -326,7 +326,16 @@ function showCompletionScreen(d) {
     const totalTime = d.global_elapsed || '--';
     overlay.innerHTML = `
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:520px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);max-height:90vh;overflow-y:auto;">
-            <div style="font-size:3rem;margin-bottom:16px;">&#10024;</div>
+            <div style="margin-bottom:16px;display:flex;justify-content:center;">
+                <svg width="72" height="60" viewBox="0 0 72 60" fill="none" style="animation:cloudFloat 2.5s ease-in-out infinite;">
+                    <style>@keyframes cloudFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}</style>
+                    <defs><linearGradient id="completionCloudGrad" x1="0" y1="0" x2="72" y2="46"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient></defs>
+                    <path d="M18 46 Q6 46 4 36 Q0 28 8 22 Q4 14 12 10 Q18 2 28 6 Q34 -2 42 4 Q48 -2 56 4 Q64 2 66 12 Q72 18 70 26 Q74 34 68 40 Q64 46 54 46 Z" fill="url(#completionCloudGrad)" stroke="rgba(99,102,241,0.3)" stroke-width="1"/>
+                    <circle cx="26" cy="28" r="2.5" fill="#1e293b"/><circle cx="46" cy="28" r="2.5" fill="#1e293b"/>
+                    <path d="M30 35 Q36 40 42 35" stroke="#1e293b" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    <path d="M28 18 L34 24 L44 12" stroke="var(--green,#22c55e)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+                </svg>
+            </div>
             <h2 style="font-size:1.5rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Transfer Complete!</h2>
             <p style="color:var(--text-secondary);margin-bottom:24px;">All your files have been copied successfully.</p>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;">
@@ -518,7 +527,12 @@ async function refresh() {
       updateStatusDot('active');
       document.getElementById('statusText').textContent = 'Starting...';
       updateButtons(true);
-    } else if (d.finished && !d.rclone_running && d.global_pct < 100) {
+    } else if (d.just_started && !d.rclone_running) {
+      // Grace period: rclone RC server not yet responding, show Starting
+      updateStatusDot('active');
+      document.getElementById('statusText').textContent = 'Starting...';
+      updateButtons(true);
+    } else if (d.finished && !d.rclone_running && d.global_pct < 100 && !d.just_started) {
       updateStatusDot('stopped');
       document.getElementById('statusText').textContent = 'Stopped';
       updateButtons(false);
@@ -753,7 +767,10 @@ async function refresh() {
     drawAreaChart('progressChart', progressHistory, '#22d3ee', 'progGrad', v => v.toFixed(0) + '%', true, 100);
     drawAreaChart('filesChart', filesLocalHistory, '#818cf8', 'filesGrad', fmtFilesShort, true);
 
-    // Active transfers
+    // Active transfers — clear stale list when transfer is done
+    if (d.global_pct >= 100 || d.finished) {
+      d.active = [];
+    }
     const list = document.getElementById('transfersList');
     document.getElementById('transferCount').textContent = (d.active ? d.active.length : 0) + ' active';
     if (d.active && d.active.length) {

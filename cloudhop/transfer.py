@@ -1178,6 +1178,11 @@ class TransferManager:
             result["global_files_done"] = global_files_done
             result["global_files_total"] = global_files_total
             result["global_files_pct"] = files_pct
+
+            # Clear stale active transfers when transfer is truly complete
+            if result["finished"] and global_pct >= 100:
+                result["active"] = []
+                logger.debug("Transfer complete (%.1f%%) — cleared active transfers list", global_pct)
             result["global_elapsed"] = fmt_duration(global_elapsed_sec)
             result["global_elapsed_sec"] = global_elapsed_sec
             result["session_elapsed_sec"] = session_elapsed_sec
@@ -1280,6 +1285,14 @@ class TransferManager:
             ]
 
         result["rclone_running"] = self.is_rclone_running()
+
+        # Grace period: avoid false "Stopped" status while rclone RC is booting
+        just_started = (
+            hasattr(self, "_transfer_start_time")
+            and (time.time() - self._transfer_start_time) < 10
+        )
+        result["just_started"] = just_started
+
         return result
 
     # ---- pause / resume ------------------------------------------------------
@@ -1370,6 +1383,8 @@ class TransferManager:
                 self._rclone_proc = proc
                 self.rclone_pid = proc.pid
                 self.transfer_active = True
+            self._transfer_start_time = time.time()
+            logger.info("Transfer resumed (PID %s), marked just_started", proc.pid)
             return {"ok": True, "msg": f"Started rclone (PID {proc.pid})"}
         except Exception as e:
             return {"ok": False, "msg": f"Failed to start: {str(e)}"}
@@ -1577,6 +1592,14 @@ class TransferManager:
         source_type: str = body.get("source_type", "")
         dest_type: str = body.get("dest_type", "")
 
+        # Proton Drive has strict rate limiting - cap parallel transfers
+        if dest_type == "protondrive" and transfers > 2:
+            transfers = 2
+            logger.info("Proton Drive: capped transfers to %d (rate limit protection)", transfers)
+        elif source_type == "protondrive" and transfers > 3:
+            transfers = 3
+            logger.info("Proton Drive source: capped transfers to %d", transfers)
+
         if not source or not dest:
             return {"ok": False, "msg": "Missing source or destination"}
 
@@ -1655,6 +1678,23 @@ class TransferManager:
         if body.get("fast_list", True):
             self.rclone_cmd.append("--fast-list")
 
+        # Copy empty directories so file count matches preview total
+        self.rclone_cmd.append("--create-empty-src-dirs")
+
+        # Proton Drive: limit checkers and add throttling to avoid rate limiting
+        if dest_type == "protondrive" or source_type == "protondrive":
+            # Override the default --checkers=16 with a safer value
+            self.rclone_cmd = [
+                f"--checkers=4" if flag.startswith("--checkers=") else flag
+                for flag in self.rclone_cmd
+            ]
+            self.rclone_cmd.extend([
+                "--tpslimit=4",
+                "--retries=5",
+                "--low-level-retries=10",
+            ])
+            logger.info("Proton Drive: applied rate limit protection flags")
+
         # Save rclone_cmd to state but strip flags that contain credentials.
         # Only strip --flag=value patterns that match known credential flags;
         # never strip positional args (source/dest paths) even if they
@@ -1700,6 +1740,8 @@ class TransferManager:
                 self._rclone_proc = proc
                 self.rclone_pid = proc.pid
                 self.transfer_active = True
+            self._transfer_start_time = time.time()
+            logger.info("Transfer started (PID %s), marked just_started", proc.pid)
             return {"ok": True, "pid": proc.pid}
         except Exception as e:
             return {"ok": False, "msg": str(e)}
@@ -1785,6 +1827,53 @@ class TransferManager:
                 timeout=RCLONE_CONFIG_TIMEOUT_SEC,
             )
             if result.returncode == 0:
+                # OneDrive requires drive_id and drive_type to be set
+                if provider_type == "onedrive":
+                    try:
+                        logger.info("OneDrive: configuring drive_id and drive_type")
+                        dump = subprocess.run(
+                            ["rclone", "config", "dump"],
+                            capture_output=True, text=True, timeout=10,
+                        )
+                        if dump.returncode == 0:
+                            cfg = json.loads(dump.stdout)
+                            remote_cfg = cfg.get(name, {})
+                            if not remote_cfg.get("drive_id"):
+                                drives_result = subprocess.run(
+                                    ["rclone", "backend", "drives", f"{name}:"],
+                                    capture_output=True, text=True, timeout=30,
+                                )
+                                if drives_result.returncode == 0:
+                                    drives = json.loads(drives_result.stdout)
+                                    if drives and len(drives) > 0:
+                                        drive = drives[0]
+                                        drive_id = drive.get("id", "")
+                                        drive_type = drive.get("driveType", "personal")
+                                        subprocess.run(
+                                            ["rclone", "config", "update", name,
+                                             f"drive_id={drive_id}",
+                                             f"drive_type={drive_type}"],
+                                            capture_output=True, text=True, timeout=10,
+                                        )
+                                        logger.info(
+                                            "OneDrive: auto-set drive_id=%s drive_type=%s",
+                                            drive_id, drive_type,
+                                        )
+                                else:
+                                    # Fallback: set drive_type and trigger auto-detection via lsd
+                                    logger.info("OneDrive: backend drives failed, trying fallback")
+                                    subprocess.run(
+                                        ["rclone", "config", "update", name,
+                                         "drive_type=personal"],
+                                        capture_output=True, text=True, timeout=10,
+                                    )
+                                    subprocess.run(
+                                        ["rclone", "lsd", f"{name}:"],
+                                        capture_output=True, text=True, timeout=30,
+                                    )
+                    except Exception as exc:
+                        logger.warning("OneDrive: drive_id auto-detection failed: %s", exc)
+
                 # Validate the remote actually works
                 if provider_type in ("mega", "protondrive", "s3"):
                     check = subprocess.run(
