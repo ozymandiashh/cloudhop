@@ -132,7 +132,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         # Prevent directory traversal by resolving the real path and ensuring
         # it stays within the static directory.
         filepath = os.path.realpath(os.path.join(static_dir, filename))
-        if not filepath.startswith(os.path.realpath(static_dir)):
+        if not filepath.startswith(os.path.realpath(static_dir) + os.sep):
             self.send_response(403)
             self.end_headers()
             return
@@ -553,7 +553,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 return
             state_file = os.path.join(_CM_DIR, f"cloudhop_{transfer_id}_state.json")
             # Prevent directory traversal
-            if not os.path.realpath(state_file).startswith(os.path.realpath(_CM_DIR)):
+            if not os.path.realpath(state_file).startswith(os.path.realpath(_CM_DIR) + os.sep):
                 self._send_json({"ok": False, "msg": "Invalid transfer ID"}, 400)
                 return
             if not os.path.exists(state_file):
@@ -566,13 +566,14 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 if not cmd:
                     self._send_json({"ok": False, "msg": "No command saved for this transfer"})
                     return
-                # Switch manager to this transfer
-                self.manager.state_file = state_file
+                # Switch manager to this transfer (under lock)
                 log_file = os.path.join(_CM_DIR, f"cloudhop_{transfer_id}.log")
-                self.manager.log_file = log_file
-                self.manager.rclone_cmd = cmd
-                self.manager.transfer_label = saved.get("transfer_label", TRANSFER_LABEL)
-                self.manager.state = saved
+                with self.manager.state_lock:
+                    self.manager.state_file = state_file
+                    self.manager.log_file = log_file
+                    self.manager.rclone_cmd = cmd
+                    self.manager.transfer_label = saved.get("transfer_label", TRANSFER_LABEL)
+                    self.manager.state = saved
                 result = self.manager.resume()
                 self._send_json(result)
             except Exception as e:

@@ -222,12 +222,17 @@ class TransferManager:
     def set_transfer_paths(self, source: str, dest: str) -> None:
         """Set unique log/state file paths and transfer label."""
         transfer_id = hashlib.md5(f"{source}:{dest}".encode()).hexdigest()[:8]
-        self.log_file = os.path.join(self.cm_dir, f"cloudhop_{transfer_id}.log")
-        self.state_file = os.path.join(self.cm_dir, f"cloudhop_{transfer_id}_state.json")
+        log_file = os.path.join(self.cm_dir, f"cloudhop_{transfer_id}.log")
+        state_file = os.path.join(self.cm_dir, f"cloudhop_{transfer_id}_state.json")
         src_label = get_remote_label(source)
         dst_label = get_remote_label(dest)
-        self.transfer_label = f"{src_label} -> {dst_label}"
-        self.state = self._load_state()
+        label = f"{src_label} -> {dst_label}"
+        new_state = self._load_state()
+        with self.state_lock:
+            self.log_file = log_file
+            self.state_file = state_file
+            self.transfer_label = label
+            self.state = new_state
 
     # ---- schedule window checker --------------------------------------------
 
@@ -347,7 +352,9 @@ class TransferManager:
 
     def load_state(self) -> Dict[str, Any]:
         """Public interface: reload state from disk and return it."""
-        self.state = self._load_state()
+        new_state = self._load_state()
+        with self.state_lock:
+            self.state = new_state
         return self.state
 
     def save_state(self) -> None:
@@ -430,8 +437,17 @@ class TransferManager:
             last_offset: int = self.state.get("last_scan_offset", 0)
 
         with open(self.log_file, "r", errors="replace") as f:
+            # Detect log truncation (rotation/restart): if the file is
+            # shorter than our last offset, re-scan from the beginning.
             if last_offset > 0:
-                f.seek(last_offset)
+                f.seek(0, 2)  # seek to end
+                file_size = f.tell()
+                if file_size < last_offset:
+                    logger.info("Log file truncated, resetting scan offset")
+                    last_offset = 0
+                    f.seek(0)
+                else:
+                    f.seek(last_offset)
             content: str = f.read()
             new_offset: int = f.tell()
 
@@ -974,35 +990,41 @@ class TransferManager:
         recent_files: List[Dict[str, str]] = []
         chunk_size = RECENT_FILES_INITIAL_CHUNK
         max_chunk = RECENT_FILES_MAX_CHUNK
-        with open(self.log_file, "rb") as f:
-            f.seek(0, 2)
-            fsize = f.tell()
-            while chunk_size <= max_chunk and len(recent_files) < 15:
-                f.seek(max(0, fsize - chunk_size))
-                chunk = f.read().decode("utf-8", errors="replace")
-                recent_files = []
-                for line in chunk.split("\n"):
-                    m = RE_COPIED_WITH_TS.search(line)
-                    if m:
-                        recent_files.append(
-                            {
-                                "name": m.group(2).strip(),
-                                "time": m.group(1).split(" ")[1],
-                            }
-                        )
-                if len(recent_files) >= 15 or chunk_size >= fsize:
-                    break
-                chunk_size *= 4
+        try:
+            with open(self.log_file, "rb") as f:
+                f.seek(0, 2)
+                fsize = f.tell()
+                while chunk_size <= max_chunk and len(recent_files) < 15:
+                    f.seek(max(0, fsize - chunk_size))
+                    chunk = f.read().decode("utf-8", errors="replace")
+                    recent_files = []
+                    for line in chunk.split("\n"):
+                        m = RE_COPIED_WITH_TS.search(line)
+                        if m:
+                            recent_files.append(
+                                {
+                                    "name": m.group(2).strip(),
+                                    "time": m.group(1).split(" ")[1],
+                                }
+                            )
+                    if len(recent_files) >= 15 or chunk_size >= fsize:
+                        break
+                    chunk_size *= 4
+        except (FileNotFoundError, PermissionError):
+            return []
         return recent_files[-15:][::-1]
 
     def _parse_error_messages(self) -> List[str]:
         """Extract error messages from the log."""
         error_msgs: List[str] = []
-        with open(self.log_file, "rb") as f:
-            f.seek(0, 2)
-            fsize = f.tell()
-            f.seek(max(0, fsize - ERROR_TAIL_BYTES))
-            err_tail = f.read().decode("utf-8", errors="replace")
+        try:
+            with open(self.log_file, "rb") as f:
+                f.seek(0, 2)
+                fsize = f.tell()
+                f.seek(max(0, fsize - ERROR_TAIL_BYTES))
+                err_tail = f.read().decode("utf-8", errors="replace")
+        except (FileNotFoundError, PermissionError):
+            return []
         for line in err_tail.split("\n"):
             if "ERROR" in line and "Errors:" not in line:
                 m = RE_ERROR_MSG.search(line)
@@ -1251,25 +1273,28 @@ class TransferManager:
         # and rely on _resume_locked to restart it from scratch.  rclone's
         # built-in deduplication (--copy-dest / size+time checks) means it
         # skips already-transferred files on resume, so no work is lost.
-        if not self.rclone_pid:
+        with self.state_lock:
+            pid = self.rclone_pid
+        if not pid:
             return {"ok": False, "msg": "No tracked rclone process"}
         try:
             if platform.system().lower() == "windows":
                 subprocess.run(
-                    ["taskkill", "/F", "/T", "/PID", str(self.rclone_pid)],
+                    ["taskkill", "/F", "/T", "/PID", str(pid)],
                     capture_output=True,
                 )
             else:
-                os.kill(self.rclone_pid, signal.SIGTERM)
-            old_pid = self.rclone_pid
-            self.rclone_pid = None
-            self.transfer_active = False
+                os.kill(pid, signal.SIGTERM)
+            with self.state_lock:
+                self.rclone_pid = None
+                self.transfer_active = False
             time.sleep(1)
             self.scan_full_log()
-            return {"ok": True, "msg": f"Stopped rclone (PID {old_pid})"}
+            return {"ok": True, "msg": f"Stopped rclone (PID {pid})"}
         except (ProcessLookupError, OSError):
-            self.rclone_pid = None
-            self.transfer_active = False
+            with self.state_lock:
+                self.rclone_pid = None
+                self.transfer_active = False
             return {"ok": False, "msg": "rclone process not found"}
 
     def resume(self) -> Dict[str, Any]:
@@ -1454,6 +1479,7 @@ class TransferManager:
         """Start the next queued transfer if nothing is running."""
         if self.is_rclone_running():
             return {"ok": False, "msg": "A transfer is already running"}
+        next_item: Optional[Dict[str, Any]] = None
         with self.state_lock:
             if not self.queue:
                 return {"ok": False, "msg": "Queue is empty"}
@@ -1465,14 +1491,18 @@ class TransferManager:
             for item in self.queue:
                 if item.get("status") == "queued":
                     item["status"] = "running"
-                    self._save_queue()
-                    result = self.start_transfer(item)
-                    if not result.get("ok"):
-                        item["status"] = "failed"
-                        self._save_queue()
-                    return result
+                    next_item = item
+                    break
             self._save_queue()
+        if next_item is None:
             return {"ok": False, "msg": "No queued transfers"}
+        # Call start_transfer OUTSIDE state_lock to avoid deadlock
+        result = self.start_transfer(next_item)
+        if not result.get("ok"):
+            with self.state_lock:
+                next_item["status"] = "failed"
+                self._save_queue()
+        return result
 
     # ---- start_transfer ------------------------------------------------------
 
@@ -1574,21 +1604,29 @@ class TransferManager:
         if body.get("fast_list", True):
             self.rclone_cmd.append("--fast-list")
 
-        # Save RCLONE_CMD to state but strip credential flags
+        # Save rclone_cmd to state but strip flags that contain credentials.
+        # Only strip --flag=value patterns that match known credential flags;
+        # never strip positional args (source/dest paths) even if they
+        # contain substrings like "user" in a path.
+        _CREDENTIAL_FLAGS = {
+            "--mega-pass=",
+            "--mega-user=",
+            "--s3-secret-access-key=",
+            "--s3-access-key-id=",
+            "--protondrive-password=",
+            "--protondrive-username=",
+            "--ftp-pass=",
+            "--ftp-user=",
+            "--sftp-pass=",
+            "--sftp-user=",
+            "--sftp-key-file=",
+            "--rc-pass=",
+            "--rc-user=",
+        }
         safe_cmd = [
             arg
             for arg in self.rclone_cmd
-            if not any(
-                secret in arg.lower()
-                for secret in [
-                    "password",
-                    "pass",
-                    "user",
-                    "token",
-                    "key=",
-                    "secret",
-                ]
-            )
+            if not any(arg.lower().startswith(f) for f in _CREDENTIAL_FLAGS)
         ]
         with self.state_lock:
             self.state["rclone_cmd"] = safe_cmd
@@ -1789,9 +1827,10 @@ class TransferManager:
                 pass
         elif not on_battery and not self.is_rclone_running() and self.rclone_cmd:
             # Only resume if we paused due to battery (not user-initiated pause)
+            # and only if the schedule window allows it.
             with self.state_lock:
                 was_battery = self.state.get("_battery_paused", False)
-            if was_battery:
+            if was_battery and self.is_in_schedule_window():
                 with self.state_lock:
                     self.state["_battery_paused"] = False
                 self.resume()

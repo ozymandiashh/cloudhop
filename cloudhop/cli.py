@@ -27,6 +27,7 @@ port is stored in ``CloudHopHandler.actual_port`` so CORS checks use the
 correct origin.
 """
 
+import errno
 import http.server
 import logging
 import os
@@ -236,12 +237,17 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
                 manager.state["transfer_label"] = manager.transfer_label
                 manager.save_state()
         print("  Starting file transfer...")
-        proc = subprocess.Popen(
-            manager.rclone_cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        popen_kwargs: dict = {
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }
+        if platform.system().lower() == "windows":
+            CREATE_NEW_PROCESS_GROUP = 0x00000200
+            DETACHED_PROCESS = 0x00000008
+            popen_kwargs["creationflags"] = CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS
+        else:
+            popen_kwargs["start_new_session"] = True
+        proc = subprocess.Popen(manager.rclone_cmd, **popen_kwargs)
         manager.rclone_pid = proc.pid
         print(f"  Transfer started (PID {proc.pid})")
         manager.transfer_active = True
@@ -258,9 +264,11 @@ def start_dashboard(manager: TransferManager, start_rclone: bool = False) -> Non
             CloudHopHandler.actual_port = port
             break
         except OSError as e:
-            if ("Address already in use" in str(e) or e.errno == 48) and try_port < port + 4:
+            if (
+                "Address already in use" in str(e) or e.errno == errno.EADDRINUSE
+            ) and try_port < port + 4:
                 continue
-            if "Address already in use" in str(e) or e.errno == 48:
+            if "Address already in use" in str(e) or e.errno == errno.EADDRINUSE:
                 print(f"\n  Error: Ports {port}-{port + 4} are all in use.")
                 print("  Please stop the other process(es) and try again.\n")
                 sys.exit(1)
