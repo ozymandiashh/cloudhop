@@ -31,6 +31,18 @@
  *   `rclone config create <name> <type>`.  The remote name used in rclone
  *   paths (e.g. "gdrive:Photos") is stored in sourceName / destName.
  */
+window.onerror = function(msg) {
+  const el = document.querySelector('.wizard-subtitle');
+  if (el && !document.getElementById('_jsErr')) {
+    const d = document.createElement('div');
+    d.id = '_jsErr';
+    d.style.cssText = 'margin-top:12px;padding:10px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;font-size:0.75rem;color:var(--orange);text-align:center;';
+    d.textContent = 'Something went wrong. Try refreshing the page.';
+    el.parentNode.insertBefore(d, el.nextSibling);
+  }
+  return true;
+};
+
 function getCsrfToken(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrf_token='))?.substring('csrf_token='.length)||''}
 function esc(s) {
   const d = document.createElement('div');

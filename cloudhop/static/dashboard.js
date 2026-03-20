@@ -25,6 +25,19 @@
  *   `completionShown` (boolean) ensures it appears exactly once per page load,
  *   even if refresh() is called multiple times after the transfer finishes.
  */
+// Global error handler - show friendly message instead of silent failure
+window.onerror = function(msg, src, line) {
+  const el = document.getElementById('toast');
+  if (el) {
+    el.textContent = 'Something went wrong. The dashboard will keep trying.';
+    el.style.borderColor = 'var(--orange)';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 5000);
+  }
+  console.error('CloudHop error:', msg, 'at', src, 'line', line);
+  return true; // prevent default browser error
+};
+
 function getCsrfToken(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrf_token='))?.substring('csrf_token='.length)||''}
 function esc(s) {
   const d = document.createElement('div');

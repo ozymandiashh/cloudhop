@@ -1283,6 +1283,19 @@ class TransferManager:
             }
         if self.is_rclone_running():
             return {"ok": False, "msg": "rclone is already running"}
+        # Crash backoff: if rclone crashed 3+ times in 5 minutes, wait before retrying
+        now = time.time()
+        if not hasattr(self, "_crash_times"):
+            self._crash_times: list = []
+        # Clean old entries (older than 5 minutes)
+        self._crash_times = [t for t in self._crash_times if now - t < 300]
+        if len(self._crash_times) >= 3:
+            wait = int(300 - (now - self._crash_times[0]))
+            return {
+                "ok": False,
+                "msg": f"Transfer keeps failing. Waiting {wait}s before retrying. Check your internet connection.",
+            }
+        self._crash_times.append(now)
         try:
             popen_kwargs = {
                 "stdout": subprocess.DEVNULL,

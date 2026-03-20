@@ -1,28 +1,15 @@
 ---
-name: Feature Request
-about: Suggest a new feature or improvement
-title: "[FEATURE] "
+name: Idea or suggestion
+about: Suggest something that would make CloudHop better
+title: ""
 labels: enhancement
 assignees: ''
 ---
 
-## Summary
+## What would you like CloudHop to do?
 
-A brief description of the feature you'd like to see.
+Describe your idea. What problem would it solve for you?
 
-## Problem / Motivation
+## How do you do it today?
 
-What problem does this solve? Why is this feature useful?
-e.g. "I find it frustrating when..."
-
-## Proposed Solution
-
-Describe how you'd like the feature to work. Be as specific as possible.
-
-## Alternatives Considered
-
-Have you considered any workarounds or alternative approaches? Why do they fall short?
-
-## Additional Context
-
-Add any other context, mockups, or references here.
+Is there a workaround you're using right now?

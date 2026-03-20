@@ -1,42 +1,30 @@
 ---
-name: Bug Report
-about: Report something that is not working correctly
-title: "[BUG] "
+name: Something isn't working
+about: Report a problem with CloudHop
+title: ""
 labels: bug
 assignees: ''
 ---
 
-## What Happened
+## What went wrong?
 
-A clear description of the bug.
+Tell us what happened in your own words. No technical language needed.
 
-## Steps to Reproduce
+## What were you trying to do?
 
-1. Run `cloudhop ...`
-2. Select ...
-3. Observe error
+For example: "I was trying to copy files from OneDrive to Google Drive"
 
-## Expected Behaviour
+## What did you see on screen?
 
-What did you expect to happen?
+Describe any error messages, or paste a screenshot if you can.
 
-## Actual Behaviour
+## Your setup
 
-What actually happened? Paste any error messages or log output below.
+- **Computer**: (e.g. Mac, Windows, Linux)
+- **How did you install CloudHop?** (e.g. downloaded the app, used `pip install cloudhop`)
+- **Source**: (e.g. Google Drive, OneDrive, Dropbox)
+- **Destination**: (e.g. Google Drive, Local Folder)
 
-```
-(paste output here)
-```
+## Error details (if the "Report" button brought you here)
 
-## Environment
-
-| Field | Value |
-|-------|-------|
-| OS | e.g. macOS 14, Ubuntu 22.04, Windows 11 |
-| Python version | e.g. 3.11.4 |
-| CloudHop version | e.g. 0.6.0 |
-| rclone version | e.g. v1.65.0 |
-
-## Additional Context
-
-Any other information that might help diagnose the issue.
+<!-- The error details below were filled in automatically by CloudHop. You can review them before submitting. -->
