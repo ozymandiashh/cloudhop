@@ -245,7 +245,13 @@
 
 <!-- ========== ERRORS ========== -->
 <div class="error-section" id="errorSection">
-  <h3>Errors</h3>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <h3 style="margin-bottom:0;">Errors</h3>
+    <div style="display:flex;gap:6px;">
+      <button onclick="exportErrorLog()" class="ctrl-btn" style="padding:4px 10px;font-size:0.7rem;">Export Logs</button>
+      <button onclick="reportError()" class="ctrl-btn" style="padding:4px 10px;font-size:0.7rem;color:var(--primary);border-color:rgba(var(--primary-rgb),0.3);">Report Bug</button>
+    </div>
+  </div>
   <div id="errorList"></div>
 </div>
 

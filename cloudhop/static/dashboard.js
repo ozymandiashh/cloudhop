@@ -1108,6 +1108,56 @@ function playNotifSound(freq, dur) {
   } catch(e) {}
 }
 
+async function exportErrorLog() {
+  try {
+    const res = await fetch('/api/error-log');
+    const d = await res.json();
+    const lines = [
+      'CloudHop Error Report',
+      '=====================',
+      'Version: ' + d.version,
+      'Platform: ' + d.platform,
+      'Python: ' + d.python,
+      'Date: ' + new Date().toISOString(),
+      '',
+      'Errors (' + d.errors.length + '):',
+      '---',
+      ...d.errors,
+    ];
+    const blob = new Blob([lines.join('\n')], {type: 'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'CloudHop-ErrorLog-' + new Date().toISOString().slice(0,10) + '.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Error log downloaded', 'var(--green)');
+  } catch(e) {
+    showToast('Could not export logs', 'var(--red)');
+  }
+}
+
+async function reportError() {
+  try {
+    const res = await fetch('/api/error-log');
+    const d = await res.json();
+    const lastErrors = d.errors.slice(-5).join('\n');
+    const title = encodeURIComponent('Bug report - CloudHop ' + d.version);
+    const body = encodeURIComponent(
+      '## Environment\n' +
+      '- CloudHop: ' + d.version + '\n' +
+      '- Platform: ' + d.platform + '\n' +
+      '- Python: ' + d.python + '\n\n' +
+      '## What happened?\n' +
+      '_Describe what you were doing when the error occurred._\n\n' +
+      '## Recent errors\n' +
+      '```\n' + (lastErrors || 'No errors found') + '\n```\n'
+    );
+    window.open('https://github.com/husamsoboh-cyber/cloudhop/issues/new?title=' + title + '&body=' + body, '_blank');
+  } catch(e) {
+    window.open('https://github.com/husamsoboh-cyber/cloudhop/issues/new', '_blank');
+  }
+}
+
 async function showHistory() {
   try {
     const existing = document.querySelector('[data-history-modal]');

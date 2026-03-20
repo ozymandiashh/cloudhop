@@ -244,6 +244,46 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     "home_dir": os.path.expanduser("~"),
                 }
             )
+        elif self.path == "/api/error-log":
+            from . import __version__
+
+            home = os.path.expanduser("~")
+            lines = []
+            if os.path.exists(self.manager.log_file):
+                try:
+                    with open(self.manager.log_file, "rb") as f:
+                        f.seek(0, 2)
+                        fsize = f.tell()
+                        f.seek(max(0, fsize - 200000))
+                        tail = f.read().decode("utf-8", errors="replace")
+                    for line in tail.split("\n"):
+                        if "ERROR" in line:
+                            lines.append(line.replace(home, "~"))
+                except Exception:
+                    pass
+            server_log = os.path.join(_CM_DIR, "cloudhop-server.log")
+            if os.path.exists(server_log):
+                try:
+                    with open(server_log, "rb") as f:
+                        f.seek(0, 2)
+                        fsize = f.tell()
+                        f.seek(max(0, fsize - 50000))
+                        tail = f.read().decode("utf-8", errors="replace")
+                    for line in tail.split("\n"):
+                        if "ERROR" in line or "Traceback" in line:
+                            lines.append(line.replace(home, "~"))
+                except Exception:
+                    pass
+            import platform as _platform
+
+            self._send_json(
+                {
+                    "version": __version__,
+                    "platform": f"{_platform.system()} {_platform.release()}",
+                    "python": _platform.python_version(),
+                    "errors": lines[-50:],
+                }
+            )
         elif self.path == "/api/schedule":
             with self.manager.state_lock:
                 schedule = dict(self.manager.state.get("schedule", {}))
