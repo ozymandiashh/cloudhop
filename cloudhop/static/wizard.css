@@ -45,6 +45,7 @@
 
   .wizard-container {
     max-width: 700px; width: 100%; position: relative; overflow: hidden;
+    padding-top: 8px;
   }
 
   /* Theme toggle */
