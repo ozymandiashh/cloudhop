@@ -31,25 +31,20 @@ jobs:
           Copy-Item $rclonePath.FullName -Destination "rclone.exe"
         shell: powershell
 
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller --name CloudHop --onedir --noconsole --add-data "cloudhop/templates;cloudhop/templates" --add-data "cloudhop/static;cloudhop/static" --add-data "rclone.exe;." --runtime-hook rthook_cloudhop.py cloudhop_main.py
-
-      - name: Create ZIP
-        run: Compress-Archive -Path dist/CloudHop -DestinationPath CloudHop-${{ github.ref_name }}-windows.zip
-        shell: powershell
+      - name: Build Windows exe
+        run: pyinstaller cloudhop_win.spec --clean --noconfirm
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: CloudHop-${{ github.ref_name }}-windows.zip
+          path: dist/CloudHop.exe
 
       - name: Upload to Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: CloudHop-${{ github.ref_name }}-windows.zip
+          files: dist/CloudHop.exe
 
   build-mac:
     runs-on: macos-latest
