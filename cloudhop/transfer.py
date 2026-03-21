@@ -63,6 +63,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("cloudhop.transfer")
 
+from .notify import notify
 from .utils import (
     ERROR_TAIL_BYTES,
     LOG_TAIL_BYTES,
@@ -91,6 +92,7 @@ from .utils import (
     RECENT_FILES_INITIAL_CHUNK,
     RECENT_FILES_MAX_CHUNK,
     SCANNER_INTERVAL_SEC,
+    SYSTEM_EXCLUDES,
     _sanitize_rclone_error,
     downsample,
     fmt_bytes,
@@ -930,8 +932,11 @@ class TransferManager:
                         src = self.rclone_cmd[2] if len(self.rclone_cmd) > 2 else ""
                         if not src:
                             return
+                        size_cmd = ["rclone", "size", src, "--json"]
+                        for excl in SYSTEM_EXCLUDES:
+                            size_cmd.append(f"--exclude={excl}")
                         sz_result = subprocess.run(
-                            ["rclone", "size", src, "--json"],
+                            size_cmd,
                             capture_output=True,
                             text=True,
                             timeout=RCLONE_SIZE_TIMEOUT_SEC,
@@ -1900,14 +1905,9 @@ class TransferManager:
                 ]
             )
 
-        # Exclude macOS system metadata files from all transfers
-        self.rclone_cmd.extend(
-            [
-                "--exclude=.DS_Store",
-                "--exclude=.localized",
-                "--exclude=._*",
-            ]
-        )
+        # Exclude system/metadata files from all transfers
+        for excl in SYSTEM_EXCLUDES:
+            self.rclone_cmd.append(f"--exclude={excl}")
 
         for excl in excludes:
             if excl:
@@ -2264,22 +2264,23 @@ class TransferManager:
                 ):
                     self._completion_notified = True
                     try:
-                        from .notify import notify
-
                         status = self.parse_current()
                         files = status.get("global_files_done", 0)
                         size = status.get("global_transferred", "")
                         pct = status.get("global_pct", 0)
+                        duration = status.get("global_elapsed", "")
                         if pct >= 99:
-                            notify(
-                                "CloudHop",
-                                f"Transfer complete! {files} files ({size}) transferred.",
-                            )
+                            title = "CloudHop: Transfer Complete"
+                            dur_part = f" in {duration}" if duration else ""
+                            msg = f"{files} files ({size}) transferred{dur_part}."
+                            logger.info("Sending macOS notification: %s", title)
+                            notify(title, msg)
                         elif files > 0:
-                            notify(
-                                "CloudHop",
-                                "Transfer failed. Check dashboard for details.",
-                            )
+                            title = "CloudHop: Transfer Failed"
+                            errs = status.get("error_messages", [])
+                            err_summary = errs[0] if errs else "Check dashboard for details."
+                            logger.info("Sending macOS notification: %s", title)
+                            notify(title, err_summary)
                     except Exception:
                         pass
                 # Auto-process queue when current transfer finishes

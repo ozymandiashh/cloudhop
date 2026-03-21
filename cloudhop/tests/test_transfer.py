@@ -1343,3 +1343,132 @@ class TestOneDriveDetection:
         ]
         result = manager.configure_remote("od", "onedrive")
         assert result["ok"] is True
+
+
+# ===========================================================================
+# System file exclusion (Item 3)
+# ===========================================================================
+
+
+class TestSystemFileExclusion:
+    @patch("os.path.exists", return_value=True)
+    @patch("subprocess.Popen")
+    def test_start_transfer_excludes_system_files(self, mock_popen, mock_exists, manager):
+        """.DS_Store, Thumbs.db, desktop.ini, .gitkeep are excluded from transfer."""
+        from cloudhop.utils import SYSTEM_EXCLUDES
+
+        mock_popen.return_value = MagicMock(pid=123)
+        result = manager.start_transfer(
+            {
+                "source": "/tmp/src",
+                "dest": "/tmp/dst",
+                "source_type": "local",
+                "dest_type": "local",
+            }
+        )
+        assert result.get("ok") is True
+        cmd = manager.rclone_cmd
+        for excl in SYSTEM_EXCLUDES:
+            assert f"--exclude={excl}" in cmd, f"Missing --exclude={excl} in rclone cmd"
+
+    @patch("os.path.exists", return_value=True)
+    @patch("subprocess.Popen")
+    def test_ds_store_not_in_transfer_command(self, mock_popen, mock_exists, manager):
+        """Specifically verify .DS_Store is excluded (regression test)."""
+        mock_popen.return_value = MagicMock(pid=123)
+        manager.start_transfer(
+            {
+                "source": "/tmp/src",
+                "dest": "/tmp/dst",
+                "source_type": "local",
+                "dest_type": "local",
+            }
+        )
+        assert "--exclude=.DS_Store" in manager.rclone_cmd
+        assert "--exclude=Thumbs.db" in manager.rclone_cmd
+        assert "--exclude=desktop.ini" in manager.rclone_cmd
+        assert "--exclude=.gitkeep" in manager.rclone_cmd
+
+
+# ===========================================================================
+# Notification on transfer completion (Item 4)
+# ===========================================================================
+
+
+class TestCompletionNotification:
+    def test_scanner_notifies_on_completion(self, manager):
+        """background_scanner calls notify on successful transfer completion."""
+        manager.rclone_cmd = ["rclone", "copy", "/tmp/a", "/tmp/b"]
+        manager._completion_notified = False
+
+        with patch.object(manager, "is_rclone_running", return_value=False), \
+             patch.object(manager, "parse_current", return_value={
+                 "global_files_done": 42,
+                 "global_transferred": "1.5 GiB",
+                 "global_pct": 100,
+                 "global_elapsed": "5m30s",
+                 "error_messages": [],
+             }), \
+             patch("cloudhop.transfer.notify") as mock_notify, \
+             patch.object(manager, "scan_full_log"), \
+             patch.object(manager, "_check_schedule"), \
+             patch.object(manager, "_check_battery"), \
+             patch("cloudhop.transfer.time.sleep", side_effect=StopIteration):
+            try:
+                manager.background_scanner()
+            except StopIteration:
+                pass
+
+            mock_notify.assert_called_once()
+            call_args = mock_notify.call_args[0]
+            assert call_args[0] == "CloudHop: Transfer Complete"
+            assert "42" in call_args[1]
+            assert "1.5 GiB" in call_args[1]
+
+    def test_scanner_notifies_on_failure(self, manager):
+        """background_scanner calls notify on failed transfer."""
+        manager.rclone_cmd = ["rclone", "copy", "/tmp/a", "/tmp/b"]
+        manager._completion_notified = False
+
+        with patch.object(manager, "is_rclone_running", return_value=False), \
+             patch.object(manager, "parse_current", return_value={
+                 "global_files_done": 5,
+                 "global_transferred": "100 MiB",
+                 "global_pct": 10,
+                 "global_elapsed": "1m",
+                 "error_messages": ["connection timeout"],
+             }), \
+             patch("cloudhop.transfer.notify") as mock_notify, \
+             patch.object(manager, "scan_full_log"), \
+             patch.object(manager, "_check_schedule"), \
+             patch.object(manager, "_check_battery"), \
+             patch("cloudhop.transfer.time.sleep", side_effect=StopIteration):
+            try:
+                manager.background_scanner()
+            except StopIteration:
+                pass
+
+            mock_notify.assert_called_once()
+            call_args = mock_notify.call_args[0]
+            assert call_args[0] == "CloudHop: Transfer Failed"
+            assert "connection timeout" in call_args[1]
+
+    def test_scanner_does_not_notify_twice(self, manager):
+        """Once notified, background_scanner should not notify again."""
+        manager.rclone_cmd = ["rclone", "copy", "/tmp/a", "/tmp/b"]
+        manager._completion_notified = True  # Already notified
+
+        with patch.object(manager, "is_rclone_running", return_value=False), \
+             patch.object(manager, "parse_current") as mock_parse, \
+             patch("cloudhop.transfer.notify") as mock_notify, \
+             patch.object(manager, "scan_full_log"), \
+             patch.object(manager, "_check_schedule"), \
+             patch.object(manager, "_check_battery"), \
+             patch("cloudhop.transfer.time.sleep", side_effect=StopIteration):
+            try:
+                manager.background_scanner()
+            except StopIteration:
+                pass
+
+            mock_notify.assert_not_called()
+            mock_parse.assert_not_called()

@@ -64,6 +64,7 @@ from .utils import (
     MAX_REQUEST_BODY_BYTES,
     PORT,
     RCLONE_PREVIEW_TIMEOUT_SEC,
+    SYSTEM_EXCLUDES,
     TRANSFER_LABEL,
     validate_rclone_input,
 )
@@ -762,16 +763,16 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     self._send_json({"ok": False, "msg": "Invalid source"}, 400)
                     return
                 try:
+                    size_cmd = [
+                        "rclone",
+                        "size",
+                        source,
+                        "--json",
+                    ]
+                    for excl in SYSTEM_EXCLUDES:
+                        size_cmd.append(f"--exclude={excl}")
                     result = subprocess.run(
-                        [
-                            "rclone",
-                            "size",
-                            source,
-                            "--json",
-                            "--exclude=.DS_Store",
-                            "--exclude=.localized",
-                            "--exclude=._*",
-                        ],
+                        size_cmd,
                         capture_output=True,
                         text=True,
                         timeout=RCLONE_PREVIEW_TIMEOUT_SEC,

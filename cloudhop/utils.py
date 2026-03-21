@@ -37,6 +37,16 @@ RCLONE_INSTALL_TIMEOUT_SEC: int = 120
 MAX_TRANSFERS: int = 64
 MAX_HISTORY_ENTRIES: int = 50000
 
+# System/metadata files excluded from both transfer and file counting.
+SYSTEM_EXCLUDES: tuple = (
+    ".DS_Store",
+    ".localized",
+    "._*",
+    "Thumbs.db",
+    "desktop.ini",
+    ".gitkeep",
+)
+
 # ─── Compiled regexes ────────────────────────────────────────────────────────
 # All patterns match lines from rclone's --log-level=INFO --stats=10s output.
 
