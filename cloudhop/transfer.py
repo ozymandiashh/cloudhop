@@ -363,7 +363,8 @@ class TransferManager:
         src_label = get_remote_label(source)
         dst_label = get_remote_label(dest)
         label = f"{src_label} -> {dst_label}"
-        new_state = self._load_state()
+        new_state = self._default_state()
+        logger.info("[F302] Reset progress counters for new transfer")
         with self.state_lock:
             self.log_file = log_file
             self.state_file = state_file
@@ -949,8 +950,17 @@ class TransferManager:
                         if not src:
                             return
                         size_cmd = ["rclone", "size", src, "--json"]
-                        for excl in SYSTEM_EXCLUDES:
-                            size_cmd.append(f"--exclude={excl}")
+                        # [F315] Include all exclude patterns (system + user) so
+                        # total only counts files that will actually transfer
+                        exclude_args = [
+                            arg for arg in self.rclone_cmd if arg.startswith("--exclude=")
+                        ]
+                        if exclude_args:
+                            size_cmd.extend(exclude_args)
+                        else:
+                            for excl in SYSTEM_EXCLUDES:
+                                size_cmd.append(f"--exclude={excl}")
+                        n_user_excludes = max(0, len(exclude_args) - len(SYSTEM_EXCLUDES))
                         sz_result = subprocess.run(
                             size_cmd,
                             capture_output=True,
@@ -959,9 +969,17 @@ class TransferManager:
                         )
                         if sz_result.returncode == 0:
                             data = json.loads(sz_result.stdout)
+                            new_count = data.get("count", 0)
                             with self.state_lock:
+                                prev_count = self.state.get("original_total_files", 0)
                                 self.state["source_size_bytes"] = data.get("bytes", 0)
-                                self.state["source_size_files"] = data.get("count", 0)
+                                self.state["source_size_files"] = new_count
+                            if n_user_excludes > 0:
+                                logger.info(
+                                    "[F315] Adjusted total for excludes: %d files (was %d before excludes)",
+                                    new_count,
+                                    prev_count if prev_count > new_count else new_count,
+                                )
                             self.save_state()
                     except Exception:
                         pass
@@ -1414,14 +1432,24 @@ class TransferManager:
             orig_total = self.state.get("original_total_bytes", 0)
             orig_files = self.state.get("original_total_files", 0)
 
+            # [F306] Use resume offset as floor for cumulative progress
+            resume_bytes_offset = self.state.get("_resume_bytes_offset", 0)
+            resume_files_offset = self.state.get("_resume_files_offset", 0)
+            cumul_bytes = max(cumul_bytes, resume_bytes_offset)
+            cumul_files = max(cumul_files, resume_files_offset)
+
+            # [F315] Read authoritative source size (respects exclude patterns)
+            cached_source_bytes = self.state.get("source_size_bytes", 0)
+            cached_source_files = self.state.get("source_size_files", 0)
+
             global_transferred = cumul_bytes + cur_transferred_bytes
 
             # Global total = best estimate of actual total data.
-            # Use the current session's total (most up-to-date from rclone)
-            # combined with cumulative from prior sessions, but take the max
-            # with orig_total in case the session total is temporarily low.
             session_based_total = cumul_bytes + cur_total_bytes
-            if orig_total > 0:
+            if cached_source_bytes > 0:
+                # [F315] Authoritative size from rclone size (respects excludes)
+                global_total = cached_source_bytes
+            elif orig_total > 0:
                 global_total = max(orig_total, session_based_total)
             else:
                 global_total = max(cur_total_bytes, session_based_total)
@@ -1434,7 +1462,10 @@ class TransferManager:
 
             global_files_done = cumul_files + result.get("session_files_done", 0)
             session_based_files = cumul_files + result.get("session_files_total", 0)
-            if orig_files > 0:
+            if cached_source_files > 0:
+                # [F315] Authoritative count from rclone size (respects excludes)
+                global_files_total = cached_source_files
+            elif orig_files > 0:
                 global_files_total = max(orig_files, session_based_files)
             else:
                 global_files_total = session_based_files
@@ -1727,6 +1758,20 @@ class TransferManager:
                 "ok": False,
                 "msg": f"Transfer keeps failing. Waiting {wait}s before retrying. Check your internet connection.",
             }
+        # [F306] Persist progress from previous session(s) as resume offset
+        self.scan_full_log()
+        with self.state_lock:
+            prev_bytes = self.state.get("cumulative_transferred_bytes", 0)
+            prev_files = self.state.get("cumulative_files_done", 0)
+            sessions_list = self.state.get("sessions", [])
+            if sessions_list:
+                last_s = sessions_list[-1]
+                prev_bytes += last_s.get("transferred", 0)
+                prev_files += last_s.get("files", 0)
+            self.state["_resume_bytes_offset"] = prev_bytes
+            self.state["_resume_files_offset"] = prev_files
+        self.save_state()
+        logger.info("[F306] Resume with offset: files=%d, bytes=%d", prev_files, prev_bytes)
         try:
             popen_kwargs = {
                 "stdout": subprocess.DEVNULL,
