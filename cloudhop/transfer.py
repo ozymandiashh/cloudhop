@@ -2505,6 +2505,34 @@ class TransferManager:
                             notify(title, err_summary)
                     except Exception:
                         pass
+                    # Email notification on completion
+                    try:
+                        from .email_notify import build_completion_email, send_email
+                        from .settings import load_settings_with_secrets
+
+                        email_settings = load_settings_with_secrets()
+                        if email_settings.get("email_enabled"):
+                            status = self.parse_current()
+                            pct = status.get("global_pct", 0)
+                            files = status.get("global_files_done", 0)
+                            should_email = (
+                                pct >= 99 and email_settings.get("email_on_complete", True)
+                            ) or (
+                                pct < 99
+                                and files > 0
+                                and email_settings.get("email_on_failure", True)
+                            )
+                            if should_email:
+                                from . import __version__
+
+                                subj, body = build_completion_email(status, __version__)
+                                if send_email(subj, body, email_settings):
+                                    logger.info(
+                                        "Email notification sent to %s",
+                                        email_settings.get("email_to", ""),
+                                    )
+                    except Exception:
+                        logger.debug("Email notification skipped", exc_info=True)
                 # Auto-process queue when current transfer finishes
                 if not self.is_rclone_running() and self.queue:
                     self.queue_process_next()

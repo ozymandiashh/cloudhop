@@ -2,6 +2,12 @@
 
 All notable changes to CloudHop are documented here.
 
+## v0.12.0
+
+### New Features
+- **Settings Page** - Centralized settings UI accessible from wizard and dashboard
+- **Email Notifications** - SMTP email alerts on transfer completion and failure
+
 ## v0.11.0
 
 ### New Features

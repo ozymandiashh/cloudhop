@@ -1272,13 +1272,43 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             if body is None:
                 self._send_json({"ok": False, "msg": "Invalid request"}, 400)
                 return
-            try:
-                from .email_notify import send_email  # noqa: F811
+            from .email_notify import send_email
+            from .settings import load_settings_with_secrets
 
-                result = send_email(body)
-                self._send_json(result, 200 if result.get("ok") else 500)
-            except ImportError:
-                self._send_json({"ok": False, "msg": "Email module not available yet"})
+            settings = load_settings_with_secrets()
+            for key in (
+                "email_smtp_host",
+                "email_smtp_port",
+                "email_smtp_tls",
+                "email_from",
+                "email_to",
+                "email_username",
+                "email_password",
+            ):
+                if key in body and body[key] != "":
+                    settings[key] = body[key]
+            try:
+                settings["email_smtp_port"] = int(settings.get("email_smtp_port", 587))
+            except (ValueError, TypeError):
+                settings["email_smtp_port"] = 587
+            try:
+                ok = send_email(
+                    "CloudHop Test Email",
+                    "<div style='font-family:-apple-system,sans-serif;max-width:500px;"
+                    "margin:0 auto;padding:32px;'>"
+                    "<h2 style='color:#22c55e;'>CloudHop Email Test</h2>"
+                    "<p>If you received this, email notifications are working.</p>"
+                    "<p style='color:#888;font-size:13px;margin-top:24px;'>Sent by CloudHop</p>"
+                    "</div>",
+                    settings,
+                )
+                if ok:
+                    self._send_json({"ok": True, "msg": "Test email sent successfully"})
+                else:
+                    self._send_json({"ok": False, "msg": "Failed to send. Check SMTP settings."})
+            except Exception as e:
+                logger.error("Test email error: %s", e)
+                self._send_json({"ok": False, "msg": "Email error. Check SMTP settings."})
         else:
             self._send_404()
 
