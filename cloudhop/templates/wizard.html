@@ -112,18 +112,15 @@ onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.colo
     <div class="local-path-input" id="sourceLocalPath">
       <div class="form-group" style="margin-top:16px;">
         <label class="form-label" for="sourcePathInput">Folder Path</label>
-        <div id="sourceDropZone" style="border:2px dashed var(--card-border);border-radius:10px;padding:20px;text-align:center;margin-bottom:8px;transition:all 0.2s;cursor:pointer;" ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='rgba(99,102,241,0.05)'" ondragleave="this.style.borderColor='var(--card-border)';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='var(--card-border)';this.style.background='';handleDrop(event,'sourcePathInput')">
-          <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:4px;">Drag a folder here</div>
-          <div style="font-size:0.7rem;color:var(--text-muted);">or type the path below</div>
+        <div id="sourceDropZone" style="border:2px dashed var(--card-border);border-radius:10px;padding:14px;text-align:center;margin-bottom:8px;transition:all 0.2s;cursor:pointer;" ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='rgba(99,102,241,0.05)'" ondragleave="this.style.borderColor='var(--card-border)';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='var(--card-border)';this.style.background='';handleDrop(event,'sourcePathInput')">
+          <div style="font-size:0.85rem;color:var(--text-dim);">Drag a folder here</div>
         </div>
+        <div style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin:6px 0;">or</div>
+        <button type="button" class="btn btn-secondary" style="width:100%;padding:12px;border-radius:10px;font-size:0.85rem;margin-bottom:8px;" onclick="browseLocalFolder('sourcePathInput')">Browse Folders</button>
         <input class="form-input" id="sourcePathInput" type="text" placeholder="e.g. /Users/you/Documents" oninput="if(typeof sourceProvider!=='undefined'&&(sourceProvider==='local'||sourceProvider==='icloud'))document.getElementById('sourceNext').disabled=!this.value.trim()">
         <div id="sourcePathError" style="display:none;font-size:0.75rem;color:var(--red);margin-top:6px;"></div>
         <div class="form-hint">The folder on your computer where your files are stored.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          <button type="button" class="btn-secondary" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('sourcePathInput').value=((window._homeDir||'/tmp')+'/Desktop');document.getElementById('sourcePathInput').dispatchEvent(new Event('input'))">Desktop</button>
-          <button type="button" class="btn-secondary" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('sourcePathInput').value=((window._homeDir||'/tmp')+'/Documents');document.getElementById('sourcePathInput').dispatchEvent(new Event('input'))">Documents</button>
-          <button type="button" class="btn-secondary" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('sourcePathInput').value=((window._homeDir||'/tmp')+'/Downloads');document.getElementById('sourcePathInput').dispatchEvent(new Event('input'))">Downloads</button>
-        </div>
+        <div id="sourceBrowseLocal" style="display:none;margin-top:12px;max-height:280px;overflow-y:auto;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:8px;"></div>
       </div>
     </div>
     <div class="local-path-input" id="sourceOtherName">
@@ -185,17 +182,15 @@ onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.colo
     <div class="local-path-input" id="destLocalPath">
       <div class="form-group" style="margin-top:16px;">
         <label class="form-label" for="destPathInput">Save to Folder</label>
-        <div id="destDropZone" style="border:2px dashed var(--card-border);border-radius:10px;padding:20px;text-align:center;margin-bottom:8px;transition:all 0.2s;cursor:pointer;" ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='rgba(99,102,241,0.05)'" ondragleave="this.style.borderColor='var(--card-border)';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='var(--card-border)';this.style.background='';handleDrop(event,'destPathInput')">
-          <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:4px;">Drag a folder here</div>
-          <div style="font-size:0.7rem;color:var(--text-muted);">or type the path below</div>
+        <div id="destDropZone" style="border:2px dashed var(--card-border);border-radius:10px;padding:14px;text-align:center;margin-bottom:8px;transition:all 0.2s;cursor:pointer;" ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='rgba(99,102,241,0.05)'" ondragleave="this.style.borderColor='var(--card-border)';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='var(--card-border)';this.style.background='';handleDrop(event,'destPathInput')">
+          <div style="font-size:0.85rem;color:var(--text-dim);">Drag a folder here</div>
         </div>
+        <div style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin:6px 0;">or</div>
+        <button type="button" class="btn btn-secondary" style="width:100%;padding:12px;border-radius:10px;font-size:0.85rem;margin-bottom:8px;" onclick="browseLocalFolder('destPathInput')">Browse Folders</button>
         <input class="form-input" id="destPathInput" type="text" placeholder="e.g. /Users/you/Desktop/Backup" oninput="if(typeof destProvider!=='undefined'&&(destProvider==='local'||destProvider==='icloud'))document.getElementById('destNext').disabled=!this.value.trim()">
         <div id="destPathError" style="display:none;font-size:0.75rem;color:var(--red);margin-top:6px;"></div>
         <div class="form-hint">Where to save the copied files on your computer.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          <button type="button" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('destPathInput').value=((window._homeDir||'/tmp')+'/Desktop/CloudHop-Backup');document.getElementById('destPathInput').dispatchEvent(new Event('input'))">Desktop/CloudHop-Backup</button>
-          <button type="button" style="padding:10px 14px;font-size:0.75rem;border-radius:8px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);min-height:44px;" onclick="document.getElementById('destPathInput').value=((window._homeDir||'/tmp')+'/Documents/CloudHop-Backup');document.getElementById('destPathInput').dispatchEvent(new Event('input'))">Documents/CloudHop-Backup</button>
-        </div>
+        <div id="destBrowseLocal" style="display:none;margin-top:12px;max-height:280px;overflow-y:auto;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:8px;"></div>
       </div>
     </div>
     <div class="local-path-input" id="destOtherName">
@@ -267,26 +262,6 @@ onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.colo
           &#9888; <strong>Warning:</strong> Sync mode will permanently delete files in the destination that do not exist in the source. Make sure you have backups.
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Transfer Speed</label>
-        <div class="speed-options" role="radiogroup" aria-label="Transfer speed">
-          <div class="speed-card" role="radio" aria-checked="false" onclick="selectSpeed(this, '4')">
-            <input type="radio" name="speed" value="4">
-            <div class="speed-label">Normal</div>
-            <div class="speed-desc">4 files at a time</div>
-          </div>
-          <div class="speed-card selected" role="radio" aria-checked="true" onclick="selectSpeed(this, '8')">
-            <input type="radio" name="speed" value="8" checked>
-            <div class="speed-label">Fast</div>
-            <div class="speed-desc">8 files at a time</div>
-          </div>
-          <div class="speed-card" role="radio" aria-checked="false" onclick="selectSpeed(this, '16')">
-            <input type="radio" name="speed" value="16">
-            <div class="speed-label">Maximum</div>
-            <div class="speed-desc">16 files at a time</div>
-          </div>
-        </div>
-      </div>
       <div class="advanced-toggle" onclick="toggleAdvanced()">
     <span class="arrow" id="advArrow">&#9654;</span>
     Advanced Options
@@ -300,6 +275,15 @@ onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.colo
         </div>
         <div class="form-hint">Comma-separated folder names to skip. Use Pick to browse and select.</div>
         <div id="excludeBrowser" style="display:none;margin-top:12px;max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:8px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Parallel Transfers</label>
+        <div class="form-hint" style="margin-bottom:8px;">How many files to transfer simultaneously. Higher = faster but uses more bandwidth.</div>
+        <select class="form-input" id="parallelTransfers" style="width:auto;min-width:200px;" onchange="selectedSpeed=this.value">
+          <option value="4">4 files (Conservative)</option>
+          <option value="8" selected>8 files (Recommended)</option>
+          <option value="16">16 files (Aggressive)</option>
+        </select>
       </div>
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label" for="bwLimit">Bandwidth Limit (optional)</label>

@@ -231,20 +231,6 @@
     vertical-align: middle; margin-left: 4px;
   }
 
-  /* Speed radio cards */
-  .speed-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  @media (max-width: 500px) { .speed-options { grid-template-columns: 1fr; } }
-  .speed-card {
-    background: var(--bg); border: 2px solid var(--card-border);
-    border-radius: 12px; padding: 14px; text-align: center;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .speed-card:hover { border-color: var(--blue); }
-  .speed-card.selected { border-color: var(--blue); background: rgba(99,102,241,0.06); }
-  .speed-card input { display: none; }
-  .speed-label { font-size: 0.9rem; font-weight: 600; color: var(--text); }
-  .speed-desc { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
-
   /* Connect step */
   .connect-item {
     display: flex; justify-content: space-between; align-items: center;

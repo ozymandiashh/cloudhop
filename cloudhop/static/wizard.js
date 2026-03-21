@@ -342,19 +342,17 @@ async function goTo(step) {
       document.getElementById('destNext').disabled = false;
     }
   }
-  if (step === 4 && selectedSpeed) {
-    document.querySelectorAll('.speed-card').forEach(c => {
-      c.classList.remove('selected');
-      c.setAttribute('aria-checked', 'false');
-    });
-    document.querySelectorAll('.speed-card').forEach(c => {
-      const radio = c.querySelector('input[type="radio"]');
-      if (radio && radio.value === selectedSpeed) {
-        c.classList.add('selected');
-        c.setAttribute('aria-checked', 'true');
-        radio.checked = true;
-      }
-    });
+  if (step === 4) {
+    // Restore parallel transfers select
+    if (selectedSpeed) {
+      const ptEl = document.getElementById('parallelTransfers');
+      if (ptEl) ptEl.value = selectedSpeed;
+    }
+    // Hide source subfolder when local path already specifies a subfolder
+    const srcPath = (document.getElementById('sourcePathInput') || {}).value || '';
+    const isLocalDetailed = (sourceProvider === 'local' || sourceProvider === 'icloud') && srcPath.includes('/');
+    const sfGroup = document.getElementById('sourceSubfolder');
+    if (sfGroup) sfGroup.closest('.form-group').style.display = isLocalDetailed ? 'none' : '';
     // Restore mode card selection
     document.querySelectorAll('.mode-card').forEach(c => {
       c.classList.remove('selected');
@@ -446,6 +444,7 @@ function toggleAdvanced() {
     if (s.bwLimit) { const el = document.getElementById('bwLimit'); if (el) el.value = s.bwLimit; }
     if (s.useChecksum) { const el = document.getElementById('useChecksum'); if (el) el.checked = true; }
     if (s.useFastList === false) { const el = document.getElementById('useFastList'); if (el) el.checked = false; }
+    if (s.selectedSpeed) { const el = document.getElementById('parallelTransfers'); if (el) el.value = s.selectedSpeed; }
     if (s.step > 1) goTo(s.step);
   } catch(e) {}
 })();
@@ -649,12 +648,7 @@ function isMultiDest() {
   return multiDestinations.length > 0;
 }
 
-function selectSpeed(card, val) {
-  document.querySelectorAll('.speed-card').forEach(c => { c.classList.remove('selected'); c.setAttribute('aria-checked', 'false'); });
-  card.classList.add('selected');
-  card.setAttribute('aria-checked', 'true');
-  selectedSpeed = val;
-}
+// selectSpeed removed - now using #parallelTransfers select in Advanced Options
 
 function selectMode(card, val) {
   document.querySelectorAll('.mode-card').forEach(c => { c.classList.remove('selected'); c.setAttribute('aria-checked', 'false'); });
@@ -951,7 +945,7 @@ function buildSummary() {
   const dstSub = document.getElementById('destSubfolder').value.trim();
   const excludes = document.getElementById('excludePatterns').value.trim();
   const bwLimit = document.getElementById('bwLimit').value.trim();
-  const speedLabels = {'4': 'Normal (4 files)', '8': 'Fast (8 files)', '16': 'Maximum (16 files)'};
+  selectedSpeed = (document.getElementById('parallelTransfers') || {}).value || selectedSpeed || '8';
   const modeLabels = {'copy': 'Copy', 'sync': 'Sync', 'bisync': 'Two-Way Sync'};
   const useChecksum = document.getElementById('useChecksum').checked;
   const useFastList = document.getElementById('useFastList').checked;
@@ -1022,8 +1016,8 @@ function buildSummary() {
       <span class="summary-value" style="color:${modeColor};font-weight:700;">${esc(modeLabels[selectedMode] || 'Copy')}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-label">Speed</span>
-      <span class="summary-value">${esc(speedLabels[selectedSpeed])}</span>
+      <span class="summary-label">Parallel transfers</span>
+      <span class="summary-value">${esc(selectedSpeed)} files</span>
     </div>
     ${excludes ? `<div class="summary-row">
       <span class="summary-label">Excluding</span>
@@ -1693,4 +1687,97 @@ async function browseSource(subpath) {
   } catch(e) {
     container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">Error loading folders.</div>';
   }
+}
+
+// Local folder browser for source/dest path input
+async function browseLocalFolder(inputId) {
+  const containerId = inputId === 'sourcePathInput' ? 'sourceBrowseLocal' : 'destBrowseLocal';
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Toggle off if already open
+  if (container.style.display === 'block') {
+    container.style.display = 'none';
+    return;
+  }
+
+  const input = document.getElementById(inputId);
+  const startPath = (input && input.value.trim()) || window._homeDir || '/tmp';
+
+  async function loadFolder(path) {
+    container.style.display = 'block';
+    container.innerHTML = '<div style="padding:8px;color:var(--text-dim);font-size:0.8rem;display:flex;align-items:center;gap:6px;"><span class="spinner"></span> Loading...</div>';
+
+    try {
+      const resp = await fetch('/api/wizard/browse', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+        body: JSON.stringify({path: path})
+      });
+      const data = await resp.json();
+      if (!data.ok) {
+        container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">' + esc(data.msg || 'Could not load folders') + '</div>';
+        return;
+      }
+      container.innerHTML = '';
+
+      // Current path display + Select button
+      const headerDiv = document.createElement('div');
+      headerDiv.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 8px 8px;border-bottom:1px solid var(--card-border);margin-bottom:4px;gap:8px;';
+      const pathLabel = document.createElement('span');
+      pathLabel.style.cssText = 'font-size:0.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;';
+      pathLabel.textContent = path;
+      pathLabel.title = path;
+      headerDiv.appendChild(pathLabel);
+      const selectBtn = document.createElement('button');
+      selectBtn.type = 'button';
+      selectBtn.className = 'btn btn-primary';
+      selectBtn.style.cssText = 'padding:5px 14px;border-radius:8px;font-size:0.75rem;white-space:nowrap;flex-shrink:0;';
+      selectBtn.textContent = 'Select this folder';
+      selectBtn.addEventListener('click', function() {
+        input.value = path;
+        input.dispatchEvent(new Event('input'));
+        container.style.display = 'none';
+      });
+      headerDiv.appendChild(selectBtn);
+      container.appendChild(headerDiv);
+
+      // Back button (go to parent)
+      const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+      if (path !== '/') {
+        const backDiv = document.createElement('div');
+        backDiv.style.cssText = 'padding:6px 8px;cursor:pointer;font-size:0.8rem;color:var(--blue);display:flex;align-items:center;gap:4px;';
+        backDiv.innerHTML = '&#8592; Back';
+        backDiv.addEventListener('click', function() { loadFolder(parentPath); });
+        container.appendChild(backDiv);
+      }
+
+      // Folder list
+      if (data.folders && data.folders.length > 0) {
+        data.folders.forEach(function(f) {
+          const fullPath = path.replace(/\/$/, '') + '/' + f.name;
+          const row = document.createElement('div');
+          row.style.cssText = 'padding:6px 8px;font-size:0.8rem;color:var(--text);border-radius:6px;display:flex;align-items:center;gap:6px;cursor:pointer;';
+          row.addEventListener('mouseover', function() { this.style.background = 'var(--card-hover)'; });
+          row.addEventListener('mouseout', function() { this.style.background = 'transparent'; });
+          row.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--blue)" opacity="0.7"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>';
+          const nameSpan = document.createElement('span');
+          nameSpan.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+          nameSpan.textContent = f.name;
+          row.appendChild(nameSpan);
+          row.addEventListener('click', function() { loadFolder(fullPath); });
+          container.appendChild(row);
+        });
+      } else {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.cssText = 'padding:8px;color:var(--text-muted);font-size:0.8rem;';
+        emptyDiv.textContent = 'No subfolders found.';
+        container.appendChild(emptyDiv);
+      }
+    } catch(e) {
+      container.innerHTML = '<div style="padding:8px;color:var(--red);font-size:0.8rem;">Error browsing folders.</div>';
+    }
+  }
+
+  loadFolder(startPath);
 }
