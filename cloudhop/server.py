@@ -43,6 +43,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 from typing import Any, Dict, Optional
 
 from . import __version__
@@ -371,11 +372,26 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 tag = data.get("tag_name", "")
                 latest = tag.lstrip("v") if tag else __version__
                 is_app = getattr(sys, "_MEIPASS", None) is not None
+
+                def _parse_version(v: str) -> tuple:
+                    """Parse '0.12.0' into (0, 12, 0) for semantic comparison."""
+                    try:
+                        return tuple(int(x) for x in v.split("."))
+                    except (ValueError, AttributeError):
+                        return (0,)
+
+                update_available = _parse_version(latest) > _parse_version(__version__)
+                logger.info(
+                    "[F305] Version check: current=%s, remote=%s, update=%s",
+                    __version__,
+                    latest,
+                    update_available,
+                )
                 self._send_json(
                     {
                         "current": __version__,
                         "latest": latest,
-                        "update_available": latest != __version__,
+                        "update_available": update_available,
                         "download_url": data.get("html_url", ""),
                         "pip_command": "" if is_app else "pip install --upgrade cloudhop",
                     }
@@ -766,6 +782,8 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json({"ok": False, "msg": "Invalid request"}, 400)
                 return
             path = body.get("path", "")
+            # F313: URL-decode path to handle diacritics (ă, î, ș, ț, â)
+            path = urllib.parse.unquote(path)
             if not path:
                 self._send_json({"exists": False, "is_directory": False})
                 return
@@ -776,15 +794,27 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             home = os.path.expanduser("~")
             real_path = os.path.realpath(os.path.expandvars(path))
             if not real_path.startswith(home + os.sep) and real_path != home:
-                logger.info("Validate-path blocked: path %s is outside home directory", path)
+                logger.info("[F313] Path validation: path=%s, result=outside_home", path)
                 self._send_json(
-                    {"ok": False, "msg": "Path validation is restricted to home directory"},
+                    {"ok": False, "msg": "Path outside allowed directory"},
                     403,
                 )
                 return
             exists = os.path.exists(real_path)
             is_dir = os.path.isdir(real_path) if exists else False
-            logger.info("Path validated: %s (exists=%s, is_dir=%s)", path, exists, is_dir)
+            if not exists:
+                logger.info("[F313] Path validation: path=%s, result=not_found", path)
+                self._send_json(
+                    {
+                        "ok": False,
+                        "msg": "Path does not exist",
+                        "exists": False,
+                        "is_directory": False,
+                    },
+                    404,
+                )
+                return
+            logger.info("[F313] Path validation: path=%s, result=ok", path)
             self._send_json({"exists": exists, "is_directory": is_dir})
         elif path == "/api/wizard/browse":
             body = self._read_body()
@@ -1014,6 +1044,33 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             if body is None:
                 self._send_json({"ok": False, "msg": "Invalid request"}, 400)
                 return
+            # F310: Validate remote name before starting transfer
+            dest = body.get("dest", "")
+            dest_type = body.get("dest_type", "")
+            source = body.get("source", "")
+            source_type = body.get("source_type", "")
+            for _label, rtype, rpath in [
+                ("destination", dest_type, dest),
+                ("source", source_type, source),
+            ]:
+                if rtype and rtype != "local" and rtype != "icloud" and ":" in rpath:
+                    remote_name = rpath.split(":")[0]
+                    if not remote_exists(remote_name):
+                        logger.warning(
+                            "[F310] Remote validation failed: %s not in configured remotes",
+                            remote_name,
+                        )
+                        self._send_json(
+                            {
+                                "ok": False,
+                                "msg": (
+                                    f"Remote '{remote_name}' not found. "
+                                    "Configure it with 'rclone config'."
+                                ),
+                            },
+                            400,
+                        )
+                        return
             logger.info(
                 "Starting transfer: %s -> %s", body.get("source", "?"), body.get("dest", "?")
             )
