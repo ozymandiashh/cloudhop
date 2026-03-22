@@ -33,6 +33,17 @@ brew tap husamsoboh-cyber/tap && brew install cloudhop
 git clone https://github.com/husamsoboh-cyber/cloudhop && cd cloudhop && pip install -e . && cloudhop
 ```
 
+**Docker**
+```bash
+docker run -d -p 8787:8787 \
+  -v ~/.config/rclone:/root/.config/rclone:ro \
+  husamsoboh/cloudhop:latest
+```
+
+Then open http://localhost:8787 in your browser.
+
+Note: Configure your cloud accounts with `rclone config` first, then mount the config into the container.
+
 ## Why CloudHop?
 
 - Free and open source, no limits, no account needed
