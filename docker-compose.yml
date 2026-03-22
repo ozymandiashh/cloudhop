@@ -1,0 +1,12 @@
+services:
+  cloudhop:
+    build: .
+    ports:
+      - "8787:8787"
+    volumes:
+      - ~/.config/rclone:/root/.config/rclone:ro
+      - cloudhop-data:/root/.cloudhop
+    restart: unless-stopped
+
+volumes:
+  cloudhop-data:
