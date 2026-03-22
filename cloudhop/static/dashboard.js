@@ -1180,12 +1180,12 @@ function toggleTheme() {
 // Load saved theme
 (function() {
   const saved = localStorage.getItem('cloudhop-theme');
-  if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.getElementById('theme-icon-dark').style.display = 'none';
-    document.getElementById('theme-icon-light').style.display = 'block';
-  }
-  if (saved === 'light') {
+  if (saved) {
+    console.log('[F308] Theme loaded from localStorage:', saved);
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('theme-icon-dark').style.display = saved === 'dark' ? 'block' : 'none';
+    document.getElementById('theme-icon-light').style.display = saved === 'light' ? 'block' : 'none';
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
     document.documentElement.setAttribute('data-theme', 'light');
     document.getElementById('theme-icon-dark').style.display = 'none';
     document.getElementById('theme-icon-light').style.display = 'block';
