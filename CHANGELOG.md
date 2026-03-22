@@ -15,7 +15,7 @@ All notable changes to CloudHop are documented here.
 - **Transfer Presets** - Save, manage, and re-run transfer configurations with one click
 - **Multi-Destination Transfers** - Copy one source to up to 5 cloud destinations simultaneously via queue
 - **Windows .exe Installer** - Single-file standalone executable built with PyInstaller via GitHub Actions
-- **Homebrew Formula** - Install with `brew tap husamsoboh-cyber/tap && brew install cloudhop`
+- **Homebrew Formula** - Install with `brew tap ozymandiashh/tap && brew install cloudhop`
 
 ### Fixes
 - Windows CI: ETA smoothing tests handle `os.waitpid` platform differences

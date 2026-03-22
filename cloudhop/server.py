@@ -369,7 +369,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 import urllib.request
 
                 req = urllib.request.Request(
-                    "https://api.github.com/repos/husamsoboh-cyber/cloudhop/releases/latest",
+                    "https://api.github.com/repos/ozymandiashh/cloudhop/releases/latest",
                     headers={"Accept": "application/vnd.github+json"},
                 )
                 with urllib.request.urlopen(req, timeout=5) as resp:

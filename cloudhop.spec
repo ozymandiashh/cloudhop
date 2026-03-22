@@ -78,7 +78,7 @@ app = BUNDLE(
     coll,
     name='CloudHop.app',
     icon='CloudHop.icns',
-    bundle_identifier='io.github.husamsoboh-cyber.cloudhop',
+    bundle_identifier='io.github.ozymandiashh.cloudhop',
     info_plist={
         'CFBundleName': 'CloudHop',
         'CFBundleDisplayName': 'CloudHop',
