@@ -148,7 +148,9 @@ def install_rclone() -> str:
         # Try brew first
         if shutil.which("brew"):
             print("  Using Homebrew...")
-            result = subprocess.run(["brew", "install", "rclone"], capture_output=False)
+            result = subprocess.run(
+                ["brew", "install", "rclone"], capture_output=False, timeout=120
+            )
             if result.returncode == 0 and find_rclone():
                 print()
                 print("  rclone installed successfully!")
@@ -493,6 +495,9 @@ class TransferManager:
         try:
             with open(self.state_file, "r") as f:
                 saved = json.load(f)
+                if not isinstance(saved, dict):
+                    logger.info("[T501] State file contained non-dict, using defaults")
+                    return default
                 for k, v in default.items():
                     if k not in saved:
                         saved[k] = v
@@ -514,9 +519,11 @@ class TransferManager:
             with self.state_lock:
                 try:
                     tmp = self.state_file + ".tmp"
-                    with open(tmp, "w") as f:
+                    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                    with os.fdopen(fd, "w") as f:
                         json.dump(self.state, f)
                     os.replace(tmp, self.state_file)
+                    logger.debug("[S503] State file saved with 0o600 permissions")
                 except Exception as e:
                     logger.warning("Failed to save state: %s", e)
 
@@ -1718,6 +1725,7 @@ class TransferManager:
                 subprocess.run(
                     ["taskkill", "/F", "/T", "/PID", str(pid)],
                     capture_output=True,
+                    timeout=10,
                 )
             else:
                 os.kill(pid, signal.SIGTERM)
@@ -1930,9 +1938,11 @@ class TransferManager:
         """Save queue to disk. Caller MUST hold ``_queue_lock``."""
         try:
             tmp = self.queue_file + ".tmp"
-            with open(tmp, "w") as f:
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
                 json.dump(self.queue, f)
             os.replace(tmp, self.queue_file)
+            logger.debug("[S505] Queue file saved with 0o600 permissions")
         except Exception as e:
             logger.warning("Failed to save queue: %s", e)
 
@@ -2518,6 +2528,7 @@ class TransferManager:
                             ["rclone", "config", "delete", name],
                             capture_output=True,
                             text=True,
+                            timeout=10,
                         )
                         error_msg = (
                             check.stderr.strip().split("\n")[0]
@@ -2559,12 +2570,20 @@ class TransferManager:
                 text=True,
                 timeout=5,
             )
+            if "InternalBattery" not in result.stdout and "'Battery Power'" not in result.stdout:
+                logger.debug("[F501] No internal battery detected, skipping battery check")
+                return False
             return "'Battery Power'" in result.stdout
         except Exception:
             return False
 
     def _check_battery(self) -> None:
         """Auto-pause on battery, auto-resume on AC power."""
+        if not hasattr(self, "_has_battery"):
+            self._has_battery = platform.system() == "Darwin"
+            logger.debug("[F502] Battery check cached: has_battery=%s", self._has_battery)
+        if not self._has_battery:
+            return
         with self.state_lock:
             battery_pause = self.state.get("pause_on_battery", False)
         if not battery_pause:
