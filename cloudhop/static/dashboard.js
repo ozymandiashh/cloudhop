@@ -658,13 +658,12 @@ async function refresh() {
     // Big progress - GLOBAL
     let pct = d.global_pct || 0;
     // Reset peak speed and progress when a new transfer starts
-    if (d.session_num === 1 && pct < 5) { peakSpeedVal = 0; peakSpeedTime = ''; peakProgressPct = 0; }
+    if (d.session_num === 1 && pct < 5) { peakSpeedVal = 0; peakSpeedTime = ''; peakProgressPct = 0; try { sessionStorage.removeItem('cloudhop_peakSpeed'); } catch(e) {} }
     // F314: In sync mode, verification passes can reset pct to 0.
     // Keep progress bar at peak value and show verification indicator.
     const isSyncVerifying = d.mode === 'sync' && pct < peakProgressPct && peakProgressPct > 5;
     if (pct > peakProgressPct) peakProgressPct = pct;
     const displayPct = Math.max(pct, peakProgressPct);
-    console.log('[F314] Sync phase: %s, progress: %d%%', isSyncVerifying ? 'verifying' : 'transferring', displayPct);
     document.getElementById('bigPct').textContent = displayPct;
     document.getElementById('bigBar').style.width = Math.max(displayPct, 0.2) + '%';
     document.getElementById('bigBar').setAttribute('aria-valuenow', displayPct);
@@ -1163,7 +1162,6 @@ function updateButtons(isRunning) {
   const showResume = !isRunning;
   if (btnPause2) btnPause2.style.display = showPause ? '' : 'none';
   if (btnResume2) btnResume2.style.display = showResume ? '' : 'none';
-  console.log('[F312] Button state: pause=%s, resume=%s', showPause, showResume);
 }
 
 // Favicon with progress

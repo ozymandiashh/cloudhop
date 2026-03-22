@@ -254,14 +254,14 @@
           <div class="mode-card mode-sync" role="radio" aria-checked="false" onclick="selectMode(this, 'sync')">
             <input type="radio" name="mode" value="sync" style="display:none;">
             <div class="mode-icon" style="color:var(--orange);">&#x21C9;</div>
-            <div class="mode-label">Sync <span class="mode-warning-badge">&#9888; Deletes</span></div>
+            <div class="mode-label">Mirror <span class="mode-warning-badge">&#9888; Deletes</span></div>
             <div class="mode-desc">Make destination identical to source. Files only in destination will be <strong>DELETED</strong>.</div>
           </div>
           <div class="mode-card mode-bisync" role="radio" aria-checked="false" onclick="selectMode(this, 'bisync')">
             <input type="radio" name="mode" value="bisync" style="display:none;">
             <div class="mode-icon" style="color:var(--blue);">&#x21C4;</div>
-            <div class="mode-label">Two-Way Sync <span class="mode-info-badge">&#x24D8;</span></div>
-            <div class="mode-desc">Sync both directions. Changes on either side are propagated to the other.</div>
+            <div class="mode-label">Two-Way Mirror <span class="mode-info-badge">&#x24D8;</span></div>
+            <div class="mode-desc">Mirror both directions. Changes on either side are propagated to the other.</div>
           </div>
         </div>
         <div id="modeWarning" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:10px;font-size:0.8rem;color:var(--red);line-height:1.5;">
