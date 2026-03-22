@@ -1128,6 +1128,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             checksum = body.get("checksum", False)
             fast_list = body.get("fast_list", False)
             mode = body.get("mode", "copy")
+            dry_run = body.get("dry_run", False)
             # First path starts immediately, rest go to queue
             first_body = {
                 "source": paths[0],
@@ -1140,6 +1141,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 "checksum": checksum,
                 "fast_list": fast_list,
                 "mode": mode,
+                "dry_run": dry_run,
             }
             logger.info(
                 "Multi-select start: %d paths, first=%s -> %s",
@@ -1160,6 +1162,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     "excludes": excludes,
                     "bw_limit": bw_limit,
                     "mode": mode,
+                    "dry_run": dry_run,
                 }
                 qr = self.manager.queue_add(q_body)
                 if qr.get("ok"):
@@ -1212,6 +1215,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             checksum = body.get("checksum", False)
             fast_list = body.get("fast_list", False)
             mode = body.get("mode", "copy")
+            dry_run = body.get("dry_run", False)
             # First destination starts immediately, rest go to queue
             first_dest = destinations[0]
             first_body = {
@@ -1225,6 +1229,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 "checksum": checksum,
                 "fast_list": fast_list,
                 "mode": mode,
+                "dry_run": dry_run,
             }
             logger.info(
                 "Multi-dest: %d destinations for source %s",
@@ -1243,6 +1248,7 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     "excludes": excludes,
                     "bw_limit": bw_limit,
                     "mode": mode,
+                    "dry_run": dry_run,
                 }
                 qr = self.manager.queue_add(q_body)
                 if qr.get("ok"):

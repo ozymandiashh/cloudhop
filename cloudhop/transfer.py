@@ -315,6 +315,7 @@ class TransferManager:
         self._rc_user: str = ""
         self._rc_pass: str = ""
         self._rc_port: int = 0
+        self._rc_env: Optional[Dict[str, str]] = None
 
         # Locks (initialized before _load_queue which needs state_lock)
         self.state_lock: threading.RLock = threading.RLock()
@@ -367,6 +368,15 @@ class TransferManager:
                 except OSError:
                     continue
         raise RuntimeError("Could not find a free port for rclone RC API")
+
+    def _build_rc_env(self) -> Dict[str, str]:
+        """[S510] Build environment dict with RC credentials for subprocess calls."""
+        env = os.environ.copy()
+        if self._rc_user:
+            env["RCLONE_RC_USER"] = self._rc_user
+        if self._rc_pass:
+            env["RCLONE_RC_PASS"] = self._rc_pass
+        return env
 
     # ---- path helpers --------------------------------------------------------
 
@@ -1365,18 +1375,13 @@ class TransferManager:
                 json.dumps({"main": {"Transfers": transfers}}),
             ]
             if self._rc_user and self._rc_pass and self._rc_port:
-                rc_cmd.extend(
-                    [
-                        f"--rc-user={self._rc_user}",
-                        f"--rc-pass={self._rc_pass}",
-                        f"--rc-addr=127.0.0.1:{self._rc_port}",
-                    ]
-                )
+                rc_cmd.append(f"--rc-addr=127.0.0.1:{self._rc_port}")
             result = subprocess.run(
                 rc_cmd,
                 capture_output=True,
                 text=True,
                 timeout=5,
+                env=self._rc_env,
             )
             if result.returncode == 0:
                 logger.info("Transfers changed to %d via RC API", transfers)
@@ -1797,18 +1802,14 @@ class TransferManager:
         # [FM-10] Regenerate RC API credentials for this session.
         # The saved command has --rc and --rc-addr but credentials were stripped
         # for security.  Generate fresh ones so set_bandwidth() can connect.
+        # [S510] Credentials passed via env vars, not CLI args.
         self._rc_user = secrets.token_hex(16)
         self._rc_pass = secrets.token_hex(16)
         self._rc_port = self._find_free_port()
-        # Remove stale --rc-addr from saved command, inject fresh credentials
+        self._rc_env = self._build_rc_env()
+        # Remove stale --rc-addr from saved command, inject fresh one
         self.rclone_cmd = [arg for arg in self.rclone_cmd if not arg.startswith("--rc-addr=")]
-        self.rclone_cmd.extend(
-            [
-                f"--rc-user={self._rc_user}",
-                f"--rc-pass={self._rc_pass}",
-                f"--rc-addr=127.0.0.1:{self._rc_port}",
-            ]
-        )
+        self.rclone_cmd.append(f"--rc-addr=127.0.0.1:{self._rc_port}")
         # Ensure --rc flag is present (it should be, but guard against edge cases)
         if "--rc" not in self.rclone_cmd:
             self.rclone_cmd.append("--rc")
@@ -1825,7 +1826,7 @@ class TransferManager:
                 )
             else:
                 popen_kwargs["start_new_session"] = True
-            proc = subprocess.Popen(self.rclone_cmd, **popen_kwargs)
+            proc = subprocess.Popen(self.rclone_cmd, env=self._rc_env, **popen_kwargs)
             with self.state_lock:
                 self._rclone_proc = proc
                 self.rclone_pid = proc.pid
@@ -1861,18 +1862,13 @@ class TransferManager:
         try:
             rc_cmd = ["rclone", "rc", "core/bwlimit", f"rate={limit}"]
             if self._rc_user and self._rc_pass and self._rc_port:
-                rc_cmd.extend(
-                    [
-                        f"--rc-user={self._rc_user}",
-                        f"--rc-pass={self._rc_pass}",
-                        f"--rc-addr=127.0.0.1:{self._rc_port}",
-                    ]
-                )
+                rc_cmd.append(f"--rc-addr=127.0.0.1:{self._rc_port}")
             result = subprocess.run(
                 rc_cmd,
                 capture_output=True,
                 text=True,
                 timeout=5,
+                env=self._rc_env,
             )
             if result.returncode == 0:
                 logger.info("Bandwidth changed to %s", limit)
@@ -2240,16 +2236,13 @@ class TransferManager:
         ]
 
         # Generate random RC API credentials and bind to a random port
+        # [S510] Credentials passed via env vars, not CLI args (hidden from ps aux)
         self._rc_user = secrets.token_hex(16)
         self._rc_pass = secrets.token_hex(16)
         self._rc_port = self._find_free_port()
-        self.rclone_cmd.extend(
-            [
-                f"--rc-user={self._rc_user}",
-                f"--rc-pass={self._rc_pass}",
-                f"--rc-addr=127.0.0.1:{self._rc_port}",
-            ]
-        )
+        self._rc_env = self._build_rc_env()
+        self.rclone_cmd.append(f"--rc-addr=127.0.0.1:{self._rc_port}")
+        logger.debug("[S510] RC credentials passed via environment variables")
         logger.info("RC API auth configured on port %d", self._rc_port)
 
         # Cloud-to-cloud transfers benefit from larger chunks and buffers
@@ -2331,6 +2324,11 @@ class TransferManager:
                 except OSError:
                     pass
 
+        # [FM-11] Dry run mode: simulate transfer without moving files
+        if body.get("dry_run", False):
+            self.rclone_cmd.append("--dry-run")
+            logger.info("[FM-11] Dry run mode enabled, no files will be transferred")
+
         # Save rclone_cmd to state but strip flags that contain credentials.
         # Only strip --flag=value patterns that match known credential flags;
         # never strip positional args (source/dest paths) even if they
@@ -2372,7 +2370,7 @@ class TransferManager:
                 )
             else:
                 popen_kwargs["start_new_session"] = True
-            proc = subprocess.Popen(self.rclone_cmd, **popen_kwargs)
+            proc = subprocess.Popen(self.rclone_cmd, env=self._rc_env, **popen_kwargs)
             with self.state_lock:
                 self._rclone_proc = proc
                 self.rclone_pid = proc.pid
