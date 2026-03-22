@@ -230,6 +230,19 @@ _KNOWN_RCLONE_FLAGS = {
 
 _ALLOWED_SUBCOMMANDS = {"copy", "sync", "bisync", "check"}
 
+# [F311] Provider-specific rclone flags for known rate-limited cloud providers.
+# Applied automatically when the provider is detected as source or destination.
+# User-explicit flag values take precedence over these defaults.
+_PROVIDER_FLAGS: Dict[str, List[str]] = {
+    "protondrive": [
+        "--transfers=2",
+        "--checkers=4",
+        "--tpslimit=4",
+        "--retries=5",
+        "--low-level-retries=10",
+    ],
+}
+
 _SHELL_META = set(";&|`$(){}!><\n\r\0")
 
 
@@ -2088,13 +2101,24 @@ class TransferManager:
         source_type: str = body.get("source_type", "")
         dest_type: str = body.get("dest_type", "")
 
-        # Proton Drive has strict rate limiting - cap parallel transfers
-        if dest_type == "protondrive" and transfers > 2:
-            transfers = 2
-            logger.info("Proton Drive: capped transfers to %d (rate limit protection)", transfers)
-        elif source_type == "protondrive" and transfers > 3:
-            transfers = 3
-            logger.info("Proton Drive source: capped transfers to %d", transfers)
+        # [F311] Provider-specific transfer capping from _PROVIDER_FLAGS
+        for _check_type in (dest_type, source_type):
+            if _check_type in _PROVIDER_FLAGS:
+                for _pf in _PROVIDER_FLAGS[_check_type]:
+                    if _pf.startswith("--transfers="):
+                        _max_t = int(_pf.split("=")[1])
+                        # Source-only providers: allow one extra parallel transfer
+                        if _check_type == source_type and _check_type != dest_type:
+                            _max_t += 1
+                        if transfers > _max_t:
+                            transfers = _max_t
+                            logger.info(
+                                "[F311] %s: capped transfers to %d (rate limit protection)",
+                                _check_type,
+                                transfers,
+                            )
+                        break
+                break  # Only apply from one provider (prefer dest)
 
         self._original_transfers = transfers
         self._current_transfers = transfers
@@ -2139,11 +2163,42 @@ class TransferManager:
         # Determine rclone subcommand based on mode
         rclone_subcommand = mode if mode in ("sync", "bisync") else "copy"
 
+        # [F304] Auto-append source folder name when dest is cloud root.
+        # When copying a folder to cloud root (e.g., gdrive:), files would end
+        # up directly in root. Instead, wrap them in a folder matching the
+        # source folder name: gdrive: → gdrive:photos
+        rclone_dest = dest
+        if rclone_subcommand in ("copy", "sync"):
+            _colon_idx = dest.find(":")
+            if _colon_idx != -1:
+                _dest_path = dest[_colon_idx + 1 :]
+                if not _dest_path:
+                    # Dest is cloud root — determine source folder name
+                    _src_folder = ""
+                    if source_type == "local":
+                        if os.path.isdir(source):
+                            _src_folder = os.path.basename(source.rstrip("/\\"))
+                    else:
+                        # Remote source: extract last path component
+                        _src_colon = source.find(":")
+                        if _src_colon != -1:
+                            _src_path = source[_src_colon + 1 :].rstrip("/")
+                            if _src_path:
+                                _src_folder = _src_path.rsplit("/", 1)[-1]
+
+                    if _src_folder:
+                        rclone_dest = f"{dest}{_src_folder}"
+                        logger.info(
+                            "[F304] Auto-appended source folder name to cloud root dest: %s -> %s",
+                            dest,
+                            rclone_dest,
+                        )
+
         self.rclone_cmd = [
             "rclone",
             rclone_subcommand,
             source,
-            dest,
+            rclone_dest,
             f"--transfers={transfers}",
             "--checkers=16",
             f"--log-file={self.log_file}",
@@ -2203,21 +2258,35 @@ class TransferManager:
         # Copy empty directories so file count matches preview total
         self.rclone_cmd.append("--create-empty-src-dirs")
 
-        # Proton Drive: limit checkers and add throttling to avoid rate limiting
-        if dest_type == "protondrive" or source_type == "protondrive":
-            # Override the default --checkers=16 with a safer value
-            self.rclone_cmd = [
-                "--checkers=4" if flag.startswith("--checkers=") else flag
-                for flag in self.rclone_cmd
-            ]
-            self.rclone_cmd.extend(
-                [
-                    "--tpslimit=4",
-                    "--retries=5",
-                    "--low-level-retries=10",
-                ]
-            )
-            logger.info("Proton Drive: applied rate limit protection flags")
+        # [F311] Apply provider-specific rclone flags from _PROVIDER_FLAGS
+        _prov_type = (
+            dest_type
+            if dest_type in _PROVIDER_FLAGS
+            else (source_type if source_type in _PROVIDER_FLAGS else "")
+        )
+        if _prov_type:
+            _applied: List[str] = []
+            for _pf in _PROVIDER_FLAGS[_prov_type]:
+                _flag_name = _pf.split("=")[0]
+                # --transfers is already handled via capping above
+                if _flag_name == "--transfers":
+                    continue
+                # Replace existing flag with same name, or add new
+                _replaced = False
+                for i, _existing in enumerate(self.rclone_cmd):
+                    if _existing.startswith(_flag_name + "="):
+                        self.rclone_cmd[i] = _pf
+                        _replaced = True
+                        break
+                if not _replaced:
+                    self.rclone_cmd.append(_pf)
+                _applied.append(_pf)
+            if _applied:
+                logger.info(
+                    "[F311] Applied provider-specific flags for %s: %s",
+                    _prov_type,
+                    _applied,
+                )
 
         # Bisync: first run requires --resync flag (rclone requirement)
         if mode == "bisync":
