@@ -167,11 +167,9 @@ def _fetch_raw(req: urllib.request.Request, timeout: int = 5):
                 BrokenPipeError,
                 ConnectionRefusedError,
             ):
-                if attempt < _MAX_RETRIES - 1:
-                    time.sleep(0.5)
-                    req = _rebuild_request(req)
-                else:
-                    raise
+                # Server rejected and reset connection (e.g. CSRF 403).
+                # Return the HTTP error code instead of retrying.
+                return e.code, b""
         except (
             ConnectionResetError,
             ConnectionAbortedError,
