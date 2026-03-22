@@ -82,8 +82,8 @@ app = BUNDLE(
     info_plist={
         'CFBundleName': 'CloudHop',
         'CFBundleDisplayName': 'CloudHop',
-        'CFBundleVersion': '0.12.1',
-        'CFBundleShortVersionString': '0.12.1',
+        'CFBundleVersion': '1.0.0',
+        'CFBundleShortVersionString': '1.0.0',
         'CFBundleInfoDictionaryVersion': '6.0',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '10.15',
