@@ -110,6 +110,13 @@ git clone https://github.com/husamsoboh-cyber/cloudhop && cd cloudhop && pip ins
 - SSRF prevention -- rejects rclone on-the-fly backend specifiers
 - Credential filtering -- masks 18 sensitive flag patterns in logs and UI
 
+#### AI Integration
+
+- [CloudHop MCP](https://github.com/husamsoboh-cyber/cloudhop-mcp) connects CloudHop to Claude, letting you control transfers through natural language
+- "Copy my OneDrive photos to Google Drive" -- just say what you need
+- Preview sizes, start transfers, monitor progress, pause and resume, all from a conversation
+- Works with Claude Code and Claude Desktop
+
 ## CLI Usage
 
 ```bash
