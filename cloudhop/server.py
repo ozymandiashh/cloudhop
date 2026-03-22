@@ -184,6 +184,11 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data:;",
+        )
         self.end_headers()
         self.wfile.write(html.encode())
 
@@ -775,6 +780,9 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json({"ok": False, "msg": "Invalid request"}, 400)
                 return
             name = body.get("name", "")
+            if not validate_rclone_input(name, "name"):
+                self._send_json({"ok": False, "msg": "Invalid remote name"}, 400)
+                return
             self._send_json({"configured": remote_exists(name)})
         elif path == "/api/wizard/validate-path":
             body = self._read_body()
@@ -859,8 +867,9 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
                     self._send_json({"ok": False, "msg": "Could not list folders"})
             except subprocess.TimeoutExpired:
                 self._send_json({"ok": False, "msg": "Folder listing timed out"})
-            except Exception as e:
-                self._send_json({"ok": False, "msg": str(e)})
+            except Exception:
+                logger.exception("[S507] Browse failed")
+                self._send_json({"ok": False, "msg": "Failed to list folders"})
         elif path == "/api/wizard/preview":
             body = self._read_body()
             if body is not None:
@@ -1049,6 +1058,14 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             dest_type = body.get("dest_type", "")
             source = body.get("source", "")
             source_type = body.get("source_type", "")
+            # F707: Reject transfer when source equals destination
+            if source and dest and source.rstrip("/").lower() == dest.rstrip("/").lower():
+                logger.warning("[F707] Rejected transfer: source equals destination: %s", source)
+                self._send_json(
+                    {"ok": False, "msg": "Source and destination cannot be the same"},
+                    400,
+                )
+                return
             for _label, rtype, rpath in [
                 ("destination", dest_type, dest),
                 ("source", source_type, source),
@@ -1093,6 +1110,16 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             if not dest:
                 self._send_json({"ok": False, "msg": "Missing destination"}, 400)
                 return
+            # F707: Reject if any source path equals destination
+            dest_norm = dest.rstrip("/").lower()
+            for p in paths:
+                if isinstance(p, str) and p.rstrip("/").lower() == dest_norm:
+                    logger.warning("[F707] Rejected transfer: source equals destination: %s", p)
+                    self._send_json(
+                        {"ok": False, "msg": "Source and destination cannot be the same"},
+                        400,
+                    )
+                    return
             transfers = body.get("transfers", "8")
             excludes = body.get("excludes", [])
             source_type = body.get("source_type", "")
@@ -1164,6 +1191,20 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
             if len(destinations) > 5:
                 self._send_json({"ok": False, "msg": "Too many destinations (max 5)"}, 400)
                 return
+            # F707: Reject if any destination equals source
+            source_norm = source.rstrip("/").lower()
+            for d in destinations:
+                d_path = d.get("path", "") if isinstance(d, dict) else str(d)
+                if d_path.rstrip("/").lower() == source_norm:
+                    logger.warning(
+                        "[F707] Rejected transfer: source equals destination: %s",
+                        source,
+                    )
+                    self._send_json(
+                        {"ok": False, "msg": "Source and destination cannot be the same"},
+                        400,
+                    )
+                    return
             transfers = body.get("transfers", "8")
             excludes = body.get("excludes", [])
             source_type = body.get("source_type", "")
@@ -1443,10 +1484,21 @@ class CloudHopHandler(http.server.BaseHTTPRequestHandler):
         pass
 
     def handle_one_request(self) -> None:
-        """Override to catch BrokenPipeError from disconnected clients."""
+        """Override to catch errors from disconnected clients and prevent
+        BaseException (SystemExit, KeyboardInterrupt) from killing worker
+        threads in ThreadingHTTPServer, which causes ERR_CONNECTION_REFUSED."""
         try:
             super().handle_one_request()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             logger.debug("Client disconnected mid-request")
         except Exception as e:
-            logger.exception("Unhandled error in request handler: %s", e)
+            logger.exception("[F602] Unhandled error in request handler: %s", e)
+        except BaseException as e:
+            # F602: SystemExit/KeyboardInterrupt must not propagate in worker
+            # threads or the ThreadingHTTPServer loses its ability to accept
+            # new connections, causing ERR_CONNECTION_REFUSED.
+            logger.error(
+                "[F602] BaseException caught in request handler (prevented crash): %s: %s",
+                type(e).__name__,
+                e,
+            )
