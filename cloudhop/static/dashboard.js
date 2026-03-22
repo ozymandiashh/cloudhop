@@ -1558,6 +1558,18 @@ if (_isDemo) {
   }
 }
 
+// F322: Bind Transfer History link explicitly
+(function() {
+  const link = document.getElementById('historyLink');
+  if (link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('[F322] Transfer History link activated');
+      showHistory();
+    });
+  }
+})();
+
 refresh();
 refreshQueue();
 refreshPresets();
