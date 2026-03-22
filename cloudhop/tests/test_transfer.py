@@ -317,7 +317,7 @@ class TestTransferControl:
         assert result["ok"] is True
         assert "5555" in result["msg"]
         mock_run.assert_called_once_with(
-            ["taskkill", "/F", "/T", "/PID", "5555"], capture_output=True
+            ["taskkill", "/F", "/T", "/PID", "5555"], capture_output=True, timeout=10
         )
         assert manager.rclone_pid is None
 

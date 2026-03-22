@@ -190,6 +190,7 @@ class TestBatteryCheck:
         """On AC power, transfer should not be paused."""
         mgr = TransferManager(cm_dir=str(tmp_path))
         mgr.state["pause_on_battery"] = True
+        mgr._has_battery = True  # Force battery capability for CI (Linux/Windows)
         with patch.object(mgr, "_is_on_battery", return_value=False):
             with patch.object(mgr, "is_rclone_running", return_value=True):
                 with patch.object(mgr, "pause") as mock_pause:
@@ -200,6 +201,7 @@ class TestBatteryCheck:
         """On battery power, running transfer should be paused."""
         mgr = TransferManager(cm_dir=str(tmp_path))
         mgr.state["pause_on_battery"] = True
+        mgr._has_battery = True  # Force battery capability for CI (Linux/Windows)
         with patch.object(mgr, "_is_on_battery", return_value=True):
             with patch.object(mgr, "is_rclone_running", return_value=True):
                 with patch.object(mgr, "pause") as mock_pause:
@@ -212,6 +214,7 @@ class TestBatteryCheck:
         mgr = TransferManager(cm_dir=str(tmp_path))
         mgr.state["pause_on_battery"] = True
         mgr.state["_battery_paused"] = True
+        mgr._has_battery = True  # Force battery capability for CI (Linux/Windows)
         mgr.rclone_cmd = ["rclone", "copy", "a:", "b:"]
         with patch.object(mgr, "_is_on_battery", return_value=False):
             with patch.object(mgr, "is_rclone_running", return_value=False):

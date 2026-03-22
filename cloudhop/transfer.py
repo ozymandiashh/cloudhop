@@ -2123,7 +2123,15 @@ class TransferManager:
                 transfers = 8
         except (ValueError, TypeError):
             transfers = 8
-        excludes: List[str] = body.get("excludes", [])
+        # [V901] Accept both "excludes" (list) and "exclude" (string/list)
+        # so API callers using either key name get the correct behaviour.
+        excludes_raw = body.get("excludes", body.get("exclude", []))
+        if isinstance(excludes_raw, str):
+            excludes = [e.strip() for e in excludes_raw.split(",") if e.strip()]
+        elif isinstance(excludes_raw, list):
+            excludes = [str(e).strip() for e in excludes_raw if str(e).strip()]
+        else:
+            excludes = []
         bw_limit: str = body.get("bw_limit", "")
         source_type: str = body.get("source_type", "")
         dest_type: str = body.get("dest_type", "")
@@ -2202,7 +2210,10 @@ class TransferManager:
                 if not _dest_path:
                     # Dest is cloud root — determine source folder name
                     _src_folder = ""
-                    if source_type == "local":
+                    # [V906] Infer source_type when not provided (API callers
+                    # may omit it). A path without ":" is assumed local.
+                    _effective_src_type = source_type or ("local" if ":" not in source else "")
+                    if _effective_src_type == "local":
                         if os.path.isdir(source):
                             _src_folder = os.path.basename(source.rstrip("/\\"))
                     else:
