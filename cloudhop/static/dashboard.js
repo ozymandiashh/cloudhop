@@ -100,6 +100,7 @@ let peakSpeedVal = 0;
 let peakSpeedTime = '';
 let lastEtaUpdate = 0;
 let lastEtaValue = 0;
+let peakProgressPct = 0;
 
 function parseSpeed(str) {
   if (!str) return 0;
@@ -535,13 +536,14 @@ async function refresh() {
         const el = document.getElementById(id);
         if (el) el.style.display = '';
       });
-      ['sessionBadge','btnPause2','btnResume2','btnCancel2','btnNewTransfer2'].forEach(id => {
+      ['sessionBadge','btnCancel2','btnNewTransfer2'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = '';
       });
       { const cb = document.getElementById('controlBar'); if (cb) cb.style.display = 'flex'; }
       updateStatusDot('active');
       setText('statusText', 'Starting...');
+      updateButtons(true);
       return;
     }
 
@@ -662,14 +664,36 @@ async function refresh() {
     if (d.uptime_pct !== undefined && uptimeEl) uptimeEl.textContent = d.uptime_pct + '%';
 
     // Big progress - GLOBAL
-    const pct = d.global_pct || 0;
-    // Reset peak speed when a new transfer starts
-    if (d.session_num === 1 && pct < 5) { peakSpeedVal = 0; peakSpeedTime = ''; }
-    document.getElementById('bigPct').textContent = pct;
-    document.getElementById('bigBar').style.width = Math.max(pct, 0.2) + '%';
-    document.getElementById('bigBar').setAttribute('aria-valuenow', pct);
+    let pct = d.global_pct || 0;
+    // Reset peak speed and progress when a new transfer starts
+    if (d.session_num === 1 && pct < 5) { peakSpeedVal = 0; peakSpeedTime = ''; peakProgressPct = 0; }
+    // F314: In sync mode, verification passes can reset pct to 0.
+    // Keep progress bar at peak value and show verification indicator.
+    const isSyncVerifying = d.mode === 'sync' && pct < peakProgressPct && peakProgressPct > 5;
+    if (pct > peakProgressPct) peakProgressPct = pct;
+    const displayPct = Math.max(pct, peakProgressPct);
+    console.log('[F314] Sync phase: %s, progress: %d%%', isSyncVerifying ? 'verifying' : 'transferring', displayPct);
+    document.getElementById('bigPct').textContent = displayPct;
+    document.getElementById('bigBar').style.width = Math.max(displayPct, 0.2) + '%';
+    document.getElementById('bigBar').setAttribute('aria-valuenow', displayPct);
     const glowEl = document.getElementById('progressGlow');
-    if (glowEl) glowEl.style.width = Math.max(pct, 0.2) + '%';
+    if (glowEl) glowEl.style.width = Math.max(displayPct, 0.2) + '%';
+    // Show verification indicator during sync multi-pass
+    const verifyIndicator = document.getElementById('syncVerifyIndicator');
+    if (isSyncVerifying) {
+      if (!verifyIndicator) {
+        const bar = document.getElementById('bigBar')?.parentElement;
+        if (bar) {
+          const ind = document.createElement('div');
+          ind.id = 'syncVerifyIndicator';
+          ind.style.cssText = 'font-size:0.75rem;color:var(--orange);font-weight:600;margin-top:4px;display:flex;align-items:center;gap:6px;';
+          ind.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Verifying integrity...';
+          bar.parentElement.insertBefore(ind, bar.nextSibling);
+        }
+      }
+    } else if (verifyIndicator) {
+      verifyIndicator.remove();
+    }
     if (d.global_transferred) document.getElementById('bpTransferred').textContent = d.global_transferred;
     if (d.global_total) document.getElementById('bpTotal').textContent = d.global_total;
     // ETA is computed by the smoothed average-speed block below (near end of refresh).
@@ -927,9 +951,9 @@ async function refresh() {
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) lastUpdateEl.textContent = new Date().toLocaleTimeString();
 
-    updateFavicon(pct);
+    updateFavicon(displayPct);
 
-    document.title = (pct > 0 && pct < 100) ? '[' + Math.round(pct) + '%] CloudHop' : 'CloudHop';
+    document.title = (displayPct > 0 && displayPct < 100) ? '[' + Math.round(displayPct) + '%] CloudHop' : 'CloudHop';
 
     // Smoothed ETA based on backend EMA or average speed
     if (pct >= 100) {
@@ -1141,13 +1165,11 @@ async function doAction(action) {
 function updateButtons(isRunning) {
   const btnPause2 = document.getElementById('btnPause2');
   const btnResume2 = document.getElementById('btnResume2');
-  if (isRunning) {
-    if (btnPause2) btnPause2.style.display = '';
-    if (btnResume2) btnResume2.style.display = 'none';
-  } else {
-    if (btnPause2) btnPause2.style.display = 'none';
-    if (btnResume2) btnResume2.style.display = '';
-  }
+  const showPause = isRunning;
+  const showResume = !isRunning;
+  if (btnPause2) btnPause2.style.display = showPause ? '' : 'none';
+  if (btnResume2) btnResume2.style.display = showResume ? '' : 'none';
+  console.log('[F312] Button state: pause=%s, resume=%s', showPause, showResume);
 }
 
 // Favicon with progress
@@ -1180,12 +1202,12 @@ function toggleTheme() {
 // Load saved theme
 (function() {
   const saved = localStorage.getItem('cloudhop-theme');
-  if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.getElementById('theme-icon-dark').style.display = 'none';
-    document.getElementById('theme-icon-light').style.display = 'block';
-  }
-  if (saved === 'light') {
+  if (saved) {
+    console.log('[F308] Theme loaded from localStorage:', saved);
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('theme-icon-dark').style.display = saved === 'dark' ? 'block' : 'none';
+    document.getElementById('theme-icon-light').style.display = saved === 'light' ? 'block' : 'none';
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
     document.documentElement.setAttribute('data-theme', 'light');
     document.getElementById('theme-icon-dark').style.display = 'none';
     document.getElementById('theme-icon-light').style.display = 'block';
@@ -1535,6 +1557,18 @@ if (_isDemo) {
     document.body.style.paddingTop = '36px';
   }
 }
+
+// F322: Bind Transfer History link explicitly
+(function() {
+  const link = document.getElementById('historyLink');
+  if (link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('[F322] Transfer History link activated');
+      showHistory();
+    });
+  }
+})();
 
 refresh();
 refreshQueue();
