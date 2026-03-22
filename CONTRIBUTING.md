@@ -4,7 +4,7 @@ Thank you for your interest in contributing!
 
 ## Reporting Bugs
 
-1. Search [existing issues](https://github.com/husamsoboh-cyber/cloudhop/issues) first.
+1. Search [existing issues](https://github.com/ozymandiashh/cloudhop/issues) first.
 2. If none found, open a new issue using the **Bug Report** template.
 3. Include your OS, Python version, CloudHop version, and rclone version.
 4. Attach relevant log output if available.
@@ -12,7 +12,7 @@ Thank you for your interest in contributing!
 ## Development Setup
 
 ```bash
-git clone https://github.com/husamsoboh-cyber/cloudhop.git
+git clone https://github.com/ozymandiashh/cloudhop.git
 cd cloudhop
 pip install -e .
 python -m cloudhop

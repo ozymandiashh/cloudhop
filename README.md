@@ -1,8 +1,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/cloudhop.svg)](https://pypi.org/project/cloudhop/)
-[![GitHub stars](https://img.shields.io/github/stars/husamsoboh-cyber/cloudhop.svg?style=social)](https://github.com/husamsoboh-cyber/cloudhop)
-[![Tests](https://github.com/husamsoboh-cyber/cloudhop/actions/workflows/tests.yml/badge.svg)](https://github.com/husamsoboh-cyber/cloudhop/actions/workflows/tests.yml)
+[![GitHub stars](https://img.shields.io/github/stars/ozymandiashh/cloudhop.svg?style=social)](https://github.com/ozymandiashh/cloudhop)
+[![Tests](https://github.com/ozymandiashh/cloudhop/actions/workflows/tests.yml/badge.svg)](https://github.com/ozymandiashh/cloudhop/actions/workflows/tests.yml)
 
 # CloudHop
 
@@ -12,11 +12,11 @@
 
 ## Download / Install
 
-**Mac** -- Download `CloudHop.dmg` from [Releases](https://github.com/husamsoboh-cyber/cloudhop/releases)
+**Mac** -- Download `CloudHop.dmg` from [Releases](https://github.com/ozymandiashh/cloudhop/releases)
 
 First launch: right-click > Open > click "Open" ([why?](https://support.apple.com/en-us/102445))
 
-**Windows** -- Download `CloudHop-windows.zip` from [Releases](https://github.com/husamsoboh-cyber/cloudhop/releases)
+**Windows** -- Download `CloudHop-windows.zip` from [Releases](https://github.com/ozymandiashh/cloudhop/releases)
 
 **pip**
 ```bash
@@ -25,12 +25,12 @@ pip install cloudhop && cloudhop
 
 **Homebrew**
 ```bash
-brew tap husamsoboh-cyber/tap && brew install cloudhop
+brew tap ozymandiashh/tap && brew install cloudhop
 ```
 
 **From source**
 ```bash
-git clone https://github.com/husamsoboh-cyber/cloudhop && cd cloudhop && pip install -e . && cloudhop
+git clone https://github.com/ozymandiashh/cloudhop && cd cloudhop && pip install -e . && cloudhop
 ```
 
 **Docker**
@@ -123,7 +123,7 @@ Note: Configure your cloud accounts with `rclone config` first, then mount the c
 
 #### AI Integration
 
-- [CloudHop MCP](https://github.com/husamsoboh-cyber/cloudhop-mcp) connects CloudHop to Claude, letting you control transfers through natural language
+- [CloudHop MCP](https://github.com/ozymandiashh/cloudhop-mcp) connects CloudHop to Claude, letting you control transfers through natural language
 - "Copy my OneDrive photos to Google Drive" -- just say what you need
 - Preview sizes, start transfers, monitor progress, pause and resume, all from a conversation
 - Works with Claude Code and Claude Desktop
@@ -173,7 +173,7 @@ I needed to move 500GB of files from OneDrive to Google Drive. Every tool I foun
 
 CloudHop is free and open source. If it saves you time, consider supporting development:
 
-[Sponsor on GitHub](https://github.com/sponsors/husamsoboh-cyber) | [Buy Me a Coffee](https://buymeacoffee.com/husamsoboh)
+[Sponsor on GitHub](https://github.com/sponsors/ozymandiashh) | [Buy Me a Coffee](https://buymeacoffee.com/husamsoboh)
 
 ### Sponsors
 <!-- $100/month sponsors: large logo with link -->

@@ -1,0 +1,98 @@
+2026-03-22 14:21:13,891 [INFO] cloudhop: CloudHop server starting (log: /Users/husamsoboh/.cloudhop/cloudhop-server.log)
+2026-03-22 14:21:13,892 [INFO] cloudhop: Platform: Darwin, Python: 3.9.6
+2026-03-22 14:21:13,896 [INFO] cloudhop: Server listening on http://localhost:8788
+2026-03-22 14:21:13,918 [INFO] cloudhop: Opening native window
+2026-03-22 14:21:15,109 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:22:09,046 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:22:14,532 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:22:25,305 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:22:41,077 [INFO] cloudhop.server: [F313] Path validation: path=/Users/husamsoboh/Desktop/e2e-screenshots, result=ok
+2026-03-22 14:23:11,715 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/e2e-screenshots -> gdrive:v-verify
+2026-03-22 14:23:11,716 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:23:11,716 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:23:11,716 [INFO] cloudhop.transfer: RC API auth configured on port 16964
+2026-03-22 14:23:11,723 [INFO] cloudhop.transfer: Transfer started (PID 88238), marked just_started
+2026-03-22 14:23:11,723 [INFO] cloudhop.server: Transfer started (PID 88238)
+2026-03-22 14:23:12,294 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:24:13,926 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Complete
+2026-03-22 14:24:14,112 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:24:41,177 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:25:03,727 [INFO] cloudhop.server: [F313] Path validation: path=/Users/husamsoboh/Desktop/ISTORIC SERB MADALINA MONICA - copie/ISTORIC CT, result=ok
+2026-03-22 14:25:35,879 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/ISTORIC SERB MADALINA MONICA - copie/ISTORIC CT -> onedrive:v-pause
+2026-03-22 14:25:35,880 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:25:35,882 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:25:35,883 [INFO] cloudhop.transfer: RC API auth configured on port 41101
+2026-03-22 14:25:35,892 [INFO] cloudhop.transfer: Transfer started (PID 88314), marked just_started
+2026-03-22 14:25:35,892 [INFO] cloudhop.server: Transfer started (PID 88314)
+2026-03-22 14:25:36,463 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:26:14,129 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Complete
+2026-03-22 14:26:14,275 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:26:48,892 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:27:09,225 [INFO] cloudhop.server: [F313] Path validation: path=/Users/husamsoboh/Desktop/e2e-screenshots, result=ok
+2026-03-22 14:27:45,911 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/e2e-screenshots -> onedrive:v-pause
+2026-03-22 14:27:45,912 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:27:45,912 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:27:45,913 [INFO] cloudhop.transfer: RC API auth configured on port 44025
+2026-03-22 14:27:45,919 [INFO] cloudhop.transfer: Transfer started (PID 88429), marked just_started
+2026-03-22 14:27:45,919 [INFO] cloudhop.server: Transfer started (PID 88429)
+2026-03-22 14:27:46,514 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:28:17,993 [INFO] cloudhop.transfer: Pause requested (PID 88429)
+2026-03-22 14:28:44,742 [INFO] cloudhop.transfer: Resume requested
+2026-03-22 14:28:44,745 [INFO] cloudhop.transfer: [F306] Resume with offset: files=51, bytes=15537799
+2026-03-22 14:28:44,750 [INFO] cloudhop.transfer: [FM-10] RC API credentials regenerated on port 40537
+2026-03-22 14:28:44,758 [INFO] cloudhop.transfer: Session counter incremented to 2 on resume
+2026-03-22 14:28:44,771 [INFO] cloudhop.transfer: Transfer resumed (PID 88572), marked just_started
+2026-03-22 14:29:05,961 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:29:14,297 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Failed
+2026-03-22 14:29:14,416 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:29:38,141 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:29:58,876 [INFO] cloudhop.server: [F313] Path validation: path=/Users/husamsoboh/Desktop/e2e-screenshots, result=ok
+2026-03-22 14:31:11,219 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:31:21,335 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:32:12,163 [INFO] cloudhop.server: [F313] Path validation: path=/Users/husamsoboh/Desktop/e2e-screenshots, result=ok
+2026-03-22 14:32:54,555 [WARNING] cloudhop.server: [F310] Remote validation failed: fakeremote999 not in configured remotes
+2026-03-22 14:33:03,406 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:34:07,415 [WARNING] cloudhop.server: [F707] Rejected transfer: source equals destination: gdrive:
+2026-03-22 14:34:14,663 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:34:41,730 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:34:55,555 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:35:37,578 [INFO] cloudhop.server: [F313] Path validation: path=/Users/husamsoboh/Desktop/e2e-screenshots, result=ok
+2026-03-22 14:37:47,572 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:38:01,478 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/e2e-screenshots -> gdrive:v-count
+2026-03-22 14:38:01,479 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:38:01,479 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:38:01,480 [INFO] cloudhop.transfer: RC API auth configured on port 10475
+2026-03-22 14:38:01,485 [INFO] cloudhop.transfer: Transfer started (PID 89104), marked just_started
+2026-03-22 14:38:01,485 [INFO] cloudhop.server: Transfer started (PID 89104)
+2026-03-22 14:39:00,967 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:39:14,463 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Complete
+2026-03-22 14:39:14,632 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:39:35,927 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/e2e-screenshots -> gdrive:v-exclude
+2026-03-22 14:39:35,927 [ERROR] cloudhop.server: Transfer failed to start: Invalid input
+2026-03-22 14:39:44,637 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Complete
+2026-03-22 14:39:44,773 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:39:47,520 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/e2e-screenshots -> gdrive:v-exclude
+2026-03-22 14:39:47,520 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:39:47,520 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:39:47,521 [INFO] cloudhop.transfer: RC API auth configured on port 36173
+2026-03-22 14:39:47,526 [INFO] cloudhop.transfer: Transfer started (PID 89179), marked just_started
+2026-03-22 14:39:47,527 [INFO] cloudhop.server: Transfer started (PID 89179)
+2026-03-22 14:40:44,790 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Complete
+2026-03-22 14:40:44,961 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:42:47,495 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/ISTORIC SERB MADALINA MONICA - copie/01.11.2023 -> gdrive:v-e2e
+2026-03-22 14:42:47,495 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:42:47,496 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:42:47,496 [INFO] cloudhop.transfer: RC API auth configured on port 25702
+2026-03-22 14:42:47,503 [INFO] cloudhop.transfer: Transfer started (PID 89352), marked just_started
+2026-03-22 14:42:47,504 [INFO] cloudhop.server: Transfer started (PID 89352)
+2026-03-22 14:43:14,976 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Complete
+2026-03-22 14:43:15,172 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
+2026-03-22 14:43:19,442 [INFO] cloudhop.server: [F305] Version check: current=0.12.2, remote=0.12.2, update=False
+2026-03-22 14:43:50,420 [INFO] cloudhop.server: Starting transfer: /Users/husamsoboh/Desktop/e2e-screenshots -> gdrive:
+2026-03-22 14:43:50,421 [INFO] cloudhop.transfer: Transfer mode: copy
+2026-03-22 14:43:50,421 [INFO] cloudhop.transfer: [F302] Reset progress counters for new transfer
+2026-03-22 14:43:50,422 [INFO] cloudhop.transfer: RC API auth configured on port 24423
+2026-03-22 14:43:50,428 [INFO] cloudhop.transfer: Transfer started (PID 89423), marked just_started
+2026-03-22 14:43:50,428 [INFO] cloudhop.server: Transfer started (PID 89423)
+2026-03-22 14:45:15,193 [INFO] cloudhop.transfer: Sending macOS notification: CloudHop: Transfer Failed
+2026-03-22 14:45:15,367 [WARNING] cloudhop.email_notify: Email not sent: missing host, from, or to address
